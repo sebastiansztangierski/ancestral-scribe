@@ -66,6 +66,10 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
         }
       });
 
+      // Position arranged persons
+      const genWidth = arranged.length * spacing;
+      const startX = -genWidth / 2 + spacing / 2;
+      
       // First pass: calculate default positions
       const defaultPositions = [];
       arranged.forEach((person, index) => {
