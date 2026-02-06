@@ -87,7 +87,30 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
       });
     });
 
-    // No child repositioning - keep generation-based layout
+    // Position first child directly under marriage point, then spread others
+    childrenByParentPair.forEach((children, pairKey) => {
+      const [parent1Id, parent2Id] = pairKey.split('-');
+      const pos1 = positions[parent1Id];
+      const pos2 = positions[parent2Id];
+
+      if (pos1 && pos2 && children.length > 0) {
+        // Marriage point X coordinate
+        const marriageCenterX = (pos1.centerX + pos2.centerX) / 2;
+        const spacing = 320;
+        
+        // First child at marriage center, others spread around it
+        const childArray = Array.from(children);
+        const startChildX = marriageCenterX - (childArray.length - 1) * spacing / 2;
+
+        childArray.forEach((childId, idx) => {
+          if (positions[childId] && !customPositions[childId]) {
+            const childX = startChildX + idx * spacing;
+            positions[childId].x = childX;
+            positions[childId].centerX = childX;
+          }
+        });
+      }
+    });
 
     return positions;
   }, [tree.persons, tree.family_edges, customPositions]);
