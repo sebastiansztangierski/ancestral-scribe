@@ -96,6 +96,8 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
       
       // Calculate positions for children groups
       const specialPositions = new Map();
+      const processedChildren = new Set();
+      
       childrenByParentPair.forEach(({ parent1Id, parent2Id, children }) => {
         if (!positions[parent1Id] || !positions[parent2Id]) return;
         
@@ -112,45 +114,44 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
         const customMarriagePos = marriageNodePositions[marriageKey] || marriageNodePositions[reverseMarriageKey];
         const parentsCenterX = customMarriagePos?.x ?? (positions[parent1Id].centerX + positions[parent2Id].centerX) / 2;
         
-        // Count children with their spouses
-        let totalSlots = 0;
+        // Build list of child-spouse pairs (avoiding duplicates)
         const childSlots = [];
         childrenInGen.forEach(childId => {
+          if (processedChildren.has(childId)) return;
+          
           const spouseId = spousePairs.get(childId);
+          
+          // If spouse is also in childrenInGen, they're both children - treat as siblings with spouses
           if (spouseId && childrenInGen.includes(spouseId)) {
-            // Spouse is also a child, skip (will be counted with partner)
-            return;
-          }
-          if (spouseId && arranged.find(p => p.id === spouseId)) {
-            // Has spouse in this generation
+            childSlots.push({ childId, spouseId: null, slots: 1 });
+            processedChildren.add(childId);
+          } else if (spouseId && arranged.find(p => p.id === spouseId)) {
+            // Has spouse not in childrenInGen
             childSlots.push({ childId, spouseId, slots: 2 });
-            totalSlots += 2;
+            processedChildren.add(childId);
+            processedChildren.add(spouseId);
           } else {
             // Single person
             childSlots.push({ childId, spouseId: null, slots: 1 });
-            totalSlots += 1;
+            processedChildren.add(childId);
           }
         });
         
-        // Calculate starting X to center the group under marriage node
+        // Calculate total width and starting position
+        const totalSlots = childSlots.reduce((sum, slot) => sum + slot.slots, 0);
         const groupWidth = (totalSlots - 1) * spacing;
         const startX = parentsCenterX - groupWidth / 2;
         
         // Assign positions
         let currentX = startX;
-        const processed = new Set();
         childSlots.forEach(slot => {
-          if (!processed.has(slot.childId)) {
-            specialPositions.set(slot.childId, currentX);
-            processed.add(slot.childId);
-            
-            if (slot.spouseId) {
-              specialPositions.set(slot.spouseId, currentX + spacing);
-              processed.add(slot.spouseId);
-              currentX += 2 * spacing;
-            } else {
-              currentX += spacing;
-            }
+          specialPositions.set(slot.childId, currentX);
+          
+          if (slot.spouseId) {
+            specialPositions.set(slot.spouseId, currentX + spacing);
+            currentX += 2 * spacing;
+          } else {
+            currentX += spacing;
           }
         });
       });
