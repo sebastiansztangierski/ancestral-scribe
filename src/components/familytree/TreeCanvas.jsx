@@ -365,7 +365,7 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
 
       // Horizontal bar positioned between parents and children
       const childGenY = childPositions[0].y;
-      const dropY = Math.max(pos1.y, pos2.y) + 150;
+      const dropY = childGenY - 30;
       
       // Straight line down from marriage point
       connectors.push(
