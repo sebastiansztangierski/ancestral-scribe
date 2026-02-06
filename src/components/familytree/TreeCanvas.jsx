@@ -357,6 +357,7 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
             top: '-500px',
             overflow: 'visible'
           }}
+          viewBox="-2000 -500 4000 3000"
         >
           {renderConnectors()}
         </svg>
