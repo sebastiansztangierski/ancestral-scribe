@@ -116,7 +116,7 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
       
       // Third pass: apply positions to arranged persons
       arranged.forEach((person, index) => {
-        const y = genNum * 180;
+        const y = genNum * 250;
         
         // Check if this person has special positioning (grouped under parents)
         let x;
