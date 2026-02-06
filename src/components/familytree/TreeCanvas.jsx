@@ -423,14 +423,31 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
       const childGenY = childPositions[0].y;
       const dropY = childGenY - 30;
       
-      // Single child - straight line from marriage to child
+      // Single child - straight line from marriage to child (or center of child couple)
       if (childPositions.length === 1) {
+        const childId = childArray[0];
+        const childPerson = tree.persons.find(p => p.id === childId);
+        const spouseEdge = tree.family_edges.find(e => 
+          e.relation_type === 'spouse' && (e.from_id === childId || e.to_id === childId)
+        );
+        
+        let targetX = childPositions[0].centerX;
+        
+        // If child has spouse, draw to center of couple
+        if (spouseEdge && childPerson) {
+          const spouseId = spouseEdge.from_id === childId ? spouseEdge.to_id : spouseEdge.from_id;
+          const spousePos = positionMap[spouseId];
+          if (spousePos) {
+            targetX = (childPositions[0].centerX + spousePos.centerX) / 2;
+          }
+        }
+        
         connectors.push(
           <line
             key={`drop-${groupIdx}`}
             x1={marriageX}
             y1={marriageY}
-            x2={childPositions[0].centerX}
+            x2={targetX}
             y2={dropY}
             stroke="#b45309"
             strokeWidth="3"
@@ -439,9 +456,9 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
         connectors.push(
           <line
             key={`child-drop-${groupIdx}-0`}
-            x1={childPositions[0].centerX}
+            x1={targetX}
             y1={dropY}
-            x2={childPositions[0].centerX}
+            x2={targetX}
             y2={childGenY - 5}
             stroke="#b45309"
             strokeWidth="3"
