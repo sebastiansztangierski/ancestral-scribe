@@ -74,7 +74,7 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
         let defaultX = startX + index * spacing;
         const defaultY = genNum * 180;
 
-        // Check if this is a single child - if so, center under parents
+        // Check if this is a single child - if so, center couple under parents
         if (genNum > 0) {
           const parents = tree.family_edges
             .filter(e => e.relation_type === 'parent_child' && e.to_id === person.id)
@@ -92,12 +92,36 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
               .length;
 
             if (siblingsCount === 1 && positions[parent1Id] && positions[parent2Id]) {
-              // Single child - center between parents
+              // Single child - center couple between parents
               const marriageKey = `${parent1Id}-${parent2Id}`;
               const customMarriagePos = marriageNodePositions[marriageKey];
-              defaultX = customMarriagePos?.x ?? (positions[parent1Id].centerX + positions[parent2Id].centerX) / 2;
+              const parentsCenterX = customMarriagePos?.x ?? (positions[parent1Id].centerX + positions[parent2Id].centerX) / 2;
+
+              // Check if person has spouse in this generation
+              const spouseId = spousePairs.get(person.id);
+              const spouse = spouseId ? arranged.find(p => p.id === spouseId) : null;
+
+              if (spouse) {
+                // Position couple centered under parents
+                defaultX = parentsCenterX - spacing / 2;
+
+                // Set spouse position too
+                const spouseIndex = arranged.findIndex(p => p.id === spouseId);
+                if (spouseIndex === index + 1) {
+                  // Spouse is next, will be positioned in next iteration
+                  arranged[spouseIndex]._centerUnderParents = parentsCenterX + spacing / 2;
+                }
+              } else {
+                // Single person, center them
+                defaultX = parentsCenterX;
+              }
             }
           }
+        }
+
+        // Check if this person was marked to be positioned by their spouse's logic
+        if (person._centerUnderParents) {
+          defaultX = person._centerUnderParents;
         }
 
         // Use custom position if available, otherwise use calculated position
