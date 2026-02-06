@@ -109,6 +109,15 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
             const childX = startChildX + idx * spacing;
             childPositionMap.set(childId, childX);
           });
+          } else {
+          // Position children based on their default arrangement
+          const childrenWidth = children.length * spacing;
+          const startChildX = parentsCenterX - childrenWidth / 2 + spacing / 2;
+
+          children.forEach((childId, idx) => {
+            const childX = startChildX + idx * spacing;
+            childPositionMap.set(childId, childX);
+          });
         }
       });
       
