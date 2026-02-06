@@ -209,16 +209,16 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
       const pos2 = positionMap[pair.parent2];
       
       if (pos1 && pos2) {
-        const leftPos = pos1.x < pos2.x ? pos1 : pos2;
-        const rightPos = pos1.x < pos2.x ? pos2 : pos1;
+        const leftPos = pos1.centerX < pos2.centerX ? pos1 : pos2;
+        const rightPos = pos1.centerX < pos2.centerX ? pos2 : pos1;
         
         // Horizontal line between spouses
         connectors.push(
           <line
             key={`spouse-line-${idx}`}
-            x1={leftPos.x + 45}
+            x1={leftPos.centerX + 45}
             y1={leftPos.centerY}
-            x2={rightPos.x - 45}
+            x2={rightPos.centerX - 45}
             y2={rightPos.centerY}
             stroke="#b45309"
             strokeWidth="3"
@@ -226,12 +226,13 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
         );
         
         // Marriage node (pink/red square like in mockup)
-        const midX = (leftPos.x + rightPos.x) / 2;
+        const midX = (leftPos.centerX + rightPos.centerX) / 2;
+        const midY = (leftPos.centerY + rightPos.centerY) / 2;
         connectors.push(
           <rect
             key={`spouse-node-${idx}`}
             x={midX - 6}
-            y={leftPos.centerY - 6}
+            y={midY - 6}
             width="12"
             height="12"
             fill="#dc2626"
