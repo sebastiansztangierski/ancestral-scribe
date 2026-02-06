@@ -98,8 +98,8 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
         const spacing = 320;
         const childArray = Array.from(children);
         
-        // First child centered under marriage, others spread around
-        const startChildX = marriageCenterX - (childArray.length - 1) * spacing / 2;
+        // First child directly under marriage point, others to the right
+        const startChildX = marriageCenterX;
 
         childArray.forEach((childId, idx) => {
           if (positions[childId] && !customPositions[childId]) {
