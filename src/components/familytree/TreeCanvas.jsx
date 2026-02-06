@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import CharacterNode from './CharacterNode';
 
 export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
@@ -7,32 +7,54 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
-  // Organize persons by generation
-  const generations = {};
-  tree.persons.forEach(person => {
-    if (!generations[person.generation]) {
-      generations[person.generation] = [];
-    }
-    generations[person.generation].push(person);
-  });
-
-  // Build position map for connectors
-  const getPersonPosition = useCallback((personId) => {
-    for (const [gen, persons] of Object.entries(generations)) {
-      const index = persons.findIndex(p => p.id === personId);
-      if (index !== -1) {
-        const genNum = parseInt(gen);
-        const spacing = 140;
-        const genWidth = persons.length * spacing;
-        const startX = -genWidth / 2 + spacing / 2;
-        return {
-          x: startX + index * spacing,
-          y: genNum * 180
-        };
+  // Build a stable position map for all persons
+  const positionMap = useMemo(() => {
+    const positions = {};
+    const generations = {};
+    
+    // Group by generation
+    tree.persons.forEach(person => {
+      if (!generations[person.generation]) {
+        generations[person.generation] = [];
       }
-    }
-    return null;
-  }, [generations]);
+      generations[person.generation].push(person);
+    });
+
+    // Calculate positions
+    Object.entries(generations).forEach(([gen, persons]) => {
+      const genNum = parseInt(gen);
+      const spacing = 140;
+      const genWidth = persons.length * spacing;
+      const startX = -genWidth / 2 + spacing / 2;
+      
+      persons.forEach((person, index) => {
+        positions[person.id] = {
+          x: startX + index * spacing,
+          y: genNum * 180,
+          centerX: startX + index * spacing,
+          centerY: genNum * 180 + 48 // center of portrait
+        };
+      });
+    });
+
+    return positions;
+  }, [tree.persons]);
+
+  // Organize persons by generation for rendering
+  const generations = useMemo(() => {
+    const gens = {};
+    tree.persons.forEach(person => {
+      if (!gens[person.generation]) {
+        gens[person.generation] = [];
+      }
+      gens[person.generation].push(person);
+    });
+    return gens;
+  }, [tree.persons]);
+
+  const getPersonPosition = useCallback((personId) => {
+    return positionMap[personId] || null;
+  }, [positionMap]);
 
   // Handle mouse wheel zoom
   const handleWheel = (e) => {
@@ -83,58 +105,178 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
     }
   }, [selectedPerson?.id]);
 
+  // Find spouse pairs and their children
+  const familyStructure = useMemo(() => {
+    const spousePairs = [];
+    const childrenByParents = {};
+
+    // Find all spouse pairs
+    tree.family_edges.filter(e => e.relation_type === 'spouse').forEach(edge => {
+      spousePairs.push({ parent1: edge.from_id, parent2: edge.to_id });
+    });
+
+    // Group children by their parent pairs
+    tree.family_edges.filter(e => e.relation_type === 'parent_child').forEach(edge => {
+      const parentId = edge.from_id;
+      const childId = edge.to_id;
+      
+      // Find which spouse pair this parent belongs to
+      const pair = spousePairs.find(p => p.parent1 === parentId || p.parent2 === parentId);
+      if (pair) {
+        const pairKey = [pair.parent1, pair.parent2].sort().join('-');
+        if (!childrenByParents[pairKey]) {
+          childrenByParents[pairKey] = { pair, children: new Set() };
+        }
+        childrenByParents[pairKey].children.add(childId);
+      }
+    });
+
+    return { spousePairs, childrenByParents };
+  }, [tree.family_edges]);
+
   // Render connectors
   const renderConnectors = () => {
     const connectors = [];
+    const { spousePairs, childrenByParents } = familyStructure;
     
-    tree.family_edges.forEach((edge, idx) => {
-      const fromPos = getPersonPosition(edge.from_id);
-      const toPos = getPersonPosition(edge.to_id);
+    // Draw spouse connections
+    spousePairs.forEach((pair, idx) => {
+      const pos1 = positionMap[pair.parent1];
+      const pos2 = positionMap[pair.parent2];
       
-      if (fromPos && toPos) {
-        if (edge.relation_type === 'spouse') {
-          // Horizontal line for spouses
+      if (pos1 && pos2) {
+        const leftPos = pos1.x < pos2.x ? pos1 : pos2;
+        const rightPos = pos1.x < pos2.x ? pos2 : pos1;
+        
+        // Horizontal line between spouses
+        connectors.push(
+          <line
+            key={`spouse-line-${idx}`}
+            x1={leftPos.x + 45}
+            y1={leftPos.centerY}
+            x2={rightPos.x - 45}
+            y2={rightPos.centerY}
+            stroke="#b45309"
+            strokeWidth="3"
+          />
+        );
+        
+        // Marriage node (pink/red square like in mockup)
+        const midX = (leftPos.x + rightPos.x) / 2;
+        connectors.push(
+          <rect
+            key={`spouse-node-${idx}`}
+            x={midX - 6}
+            y={leftPos.centerY - 6}
+            width="12"
+            height="12"
+            fill="#dc2626"
+            stroke="#fbbf24"
+            strokeWidth="2"
+            rx="2"
+          />
+        );
+      }
+    });
+
+    // Draw parent-to-children connections
+    Object.values(childrenByParents).forEach(({ pair, children }, groupIdx) => {
+      const pos1 = positionMap[pair.parent1];
+      const pos2 = positionMap[pair.parent2];
+      
+      if (!pos1 || !pos2) return;
+      
+      const childArray = Array.from(children);
+      const childPositions = childArray.map(id => positionMap[id]).filter(Boolean);
+      
+      if (childPositions.length === 0) return;
+
+      // Marriage point (center between spouses)
+      const marriageX = (pos1.x + pos2.x) / 2;
+      const marriageY = pos1.centerY;
+      
+      // Vertical line down from marriage point
+      const dropY = marriageY + 50;
+      connectors.push(
+        <line
+          key={`drop-${groupIdx}`}
+          x1={marriageX}
+          y1={marriageY + 6}
+          x2={marriageX}
+          y2={dropY}
+          stroke="#b45309"
+          strokeWidth="3"
+        />
+      );
+
+      // Horizontal bar connecting to children
+      const childXPositions = childPositions.map(p => p.x);
+      const minChildX = Math.min(...childXPositions);
+      const maxChildX = Math.max(...childXPositions);
+      
+      if (childPositions.length > 1) {
+        connectors.push(
+          <line
+            key={`hbar-${groupIdx}`}
+            x1={minChildX}
+            y1={dropY}
+            x2={maxChildX}
+            y2={dropY}
+            stroke="#b45309"
+            strokeWidth="3"
+          />
+        );
+      }
+
+      // Vertical lines down to each child
+      childPositions.forEach((childPos, childIdx) => {
+        connectors.push(
+          <line
+            key={`child-drop-${groupIdx}-${childIdx}`}
+            x1={childPos.x}
+            y1={dropY}
+            x2={childPos.x}
+            y2={childPos.y - 5}
+            stroke="#b45309"
+            strokeWidth="3"
+          />
+        );
+      });
+    });
+
+    // Draw special relations (dashed lines)
+    if (tree.special_relations) {
+      tree.special_relations.forEach((rel, idx) => {
+        const fromPos = positionMap[rel.from_id];
+        const toPos = positionMap[rel.to_id];
+        
+        if (fromPos && toPos) {
+          const relationColors = {
+            rival: '#ef4444',
+            mentor: '#3b82f6', 
+            sworn_enemy: '#991b1b',
+            lover: '#ec4899',
+            oath_bound: '#8b5cf6',
+            betrayer: '#f97316'
+          };
+          const color = relationColors[rel.relation_type] || '#6b7280';
+          
           connectors.push(
             <line
-              key={`spouse-${idx}`}
-              x1={fromPos.x + 40}
-              y1={fromPos.y + 48}
-              x2={toPos.x - 40}
-              y2={toPos.y + 48}
-              stroke="#b45309"
+              key={`special-${idx}`}
+              x1={fromPos.centerX}
+              y1={fromPos.centerY}
+              x2={toPos.centerX}
+              y2={toPos.centerY}
+              stroke={color}
               strokeWidth="2"
-            />
-          );
-          // Marriage connector dot
-          connectors.push(
-            <circle
-              key={`spouse-dot-${idx}`}
-              cx={(fromPos.x + toPos.x) / 2}
-              cy={fromPos.y + 48}
-              r="6"
-              fill="#dc2626"
-              stroke="#fbbf24"
-              strokeWidth="2"
-            />
-          );
-        } else if (edge.relation_type === 'parent_child') {
-          // Vertical line from parent to child
-          const midY = (fromPos.y + toPos.y) / 2 + 20;
-          connectors.push(
-            <path
-              key={`parent-${idx}`}
-              d={`M ${fromPos.x} ${fromPos.y + 96} 
-                  L ${fromPos.x} ${midY} 
-                  L ${toPos.x} ${midY} 
-                  L ${toPos.x} ${toPos.y}`}
-              stroke="#b45309"
-              strokeWidth="2"
-              fill="none"
+              strokeDasharray="6,4"
+              opacity="0.6"
             />
           );
         }
-      }
-    });
+      });
+    }
 
     return connectors;
   };
@@ -168,11 +310,12 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
         <svg
           className="absolute pointer-events-none"
           style={{
-            width: '2000px',
-            height: '1000px',
-            left: '-1000px',
-            top: '-100px'
+            width: '4000px',
+            height: '2000px',
+            left: '-2000px',
+            top: '-200px'
           }}
+          viewBox="-2000 -200 4000 2000"
         >
           {renderConnectors()}
         </svg>
