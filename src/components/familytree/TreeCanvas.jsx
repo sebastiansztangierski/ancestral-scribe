@@ -87,30 +87,7 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
       });
     });
 
-    // Adjust children to be centered under marriage point
-    childrenByParentPair.forEach((children, pairKey) => {
-      const [parent1Id, parent2Id] = pairKey.split('-');
-      const pos1 = positions[parent1Id];
-      const pos2 = positions[parent2Id];
-
-      if (pos1 && pos2 && children.length > 0) {
-        // Marriage point is center of two spouses
-        const marriageCenterX = (pos1.centerX + pos2.centerX) / 2;
-        const spacing = 320;
-        
-        // Position children centered under marriage point
-        const childrenWidth = children.length * spacing;
-        const startChildX = marriageCenterX - childrenWidth / 2 + spacing / 2;
-
-        children.forEach((childId, idx) => {
-          if (positions[childId] && !customPositions[childId]) {
-            const childX = startChildX + idx * spacing;
-            positions[childId].x = childX;
-            positions[childId].centerX = childX;
-          }
-        });
-      }
-    });
+    // No child repositioning - keep generation-based layout
 
     return positions;
   }, [tree.persons, tree.family_edges, customPositions]);
