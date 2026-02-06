@@ -80,7 +80,10 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
       if (genNum > 0) {
         const processedPersonIds = new Set();
         
-        arranged.forEach((person, index) => {
+        // First, identify all single children and their spouses
+        const singleChildAdjustments = new Map();
+        
+        arranged.forEach((person) => {
           if (processedPersonIds.has(person.id)) return;
           
           const parents = tree.family_edges
@@ -98,11 +101,10 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
             const siblingsFromParent2 = tree.family_edges
               .filter(e => e.relation_type === 'parent_child' && e.from_id === parent2Id)
               .map(e => e.to_id);
-            // Find children common to both parents
             const commonChildren = siblingsFromParent1.filter(id => siblingsFromParent2.includes(id));
 
             if (commonChildren.length === 1 && positions[parent1Id] && positions[parent2Id]) {
-              // Single child - center under parents' marriage node
+              // Single child - calculate marriage node center
               const marriageKey = `${parent1Id}-${parent2Id}`;
               const reverseMarriageKey = `${parent2Id}-${parent1Id}`;
               const customMarriagePos = marriageNodePositions[marriageKey] || marriageNodePositions[reverseMarriageKey];
@@ -110,20 +112,26 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
 
               // Check if person has spouse
               const spouseId = spousePairs.get(person.id);
-              const spouseIndex = spouseId ? arranged.findIndex(p => p.id === spouseId) : -1;
 
-              if (spouseIndex > -1) {
-                // Position couple centered under parents
-                defaultPositions[index] = parentsCenterX - spacing / 2;
-                defaultPositions[spouseIndex] = parentsCenterX + spacing / 2;
+              if (spouseId) {
+                // Store adjustments for both child and spouse
+                singleChildAdjustments.set(person.id, parentsCenterX - spacing / 2);
+                singleChildAdjustments.set(spouseId, parentsCenterX + spacing / 2);
                 processedPersonIds.add(person.id);
                 processedPersonIds.add(spouseId);
               } else {
                 // Single person without spouse, center them
-                defaultPositions[index] = parentsCenterX;
+                singleChildAdjustments.set(person.id, parentsCenterX);
                 processedPersonIds.add(person.id);
               }
             }
+          }
+        });
+        
+        // Apply the adjustments
+        arranged.forEach((person, index) => {
+          if (singleChildAdjustments.has(person.id)) {
+            defaultPositions[index] = singleChildAdjustments.get(person.id);
           }
         });
       }
