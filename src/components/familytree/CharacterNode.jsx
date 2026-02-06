@@ -1,0 +1,69 @@
+import React from 'react';
+import { cn } from '@/lib/utils';
+
+export default function CharacterNode({ person, isSelected, onClick }) {
+  return (
+    <div
+      onClick={() => onClick(person)}
+      className={cn(
+        "relative cursor-pointer transition-all duration-200 group",
+        isSelected && "scale-110 z-10"
+      )}
+    >
+      {/* Ornate frame */}
+      <div className={cn(
+        "absolute -inset-2 rounded-lg transition-all duration-200",
+        "bg-gradient-to-b from-amber-600 via-amber-700 to-amber-800",
+        "shadow-lg",
+        isSelected && "from-amber-500 via-amber-600 to-amber-700 shadow-amber-500/50 shadow-xl"
+      )} />
+      
+      {/* Inner frame decoration */}
+      <div className={cn(
+        "absolute -inset-1 rounded-md",
+        "bg-gradient-to-b from-amber-900 to-stone-900"
+      )} />
+
+      {/* Portrait container */}
+      <div className="relative w-20 h-24 overflow-hidden rounded-sm">
+        <img
+          src={person.portrait}
+          alt={person.name}
+          className={cn(
+            "w-full h-full object-cover",
+            person.is_unknown && "filter blur-sm grayscale"
+          )}
+        />
+        
+        {/* Unknown overlay */}
+        {person.is_unknown && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+            <span className="text-3xl text-amber-500/80">?</span>
+          </div>
+        )}
+
+        {/* Selection glow */}
+        {isSelected && (
+          <div className="absolute inset-0 bg-amber-400/20 animate-pulse" />
+        )}
+      </div>
+
+      {/* Name plate */}
+      <div className={cn(
+        "absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap",
+        "px-2 py-0.5 rounded text-xs",
+        "bg-stone-900/90 border border-amber-700/50",
+        "text-amber-100 font-serif",
+        isSelected && "bg-amber-900/90 border-amber-500"
+      )}>
+        {person.name}
+      </div>
+
+      {/* Hover effect */}
+      <div className={cn(
+        "absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity",
+        "bg-gradient-to-t from-amber-500/20 to-transparent rounded-sm"
+      )} />
+    </div>
+  );
+}
