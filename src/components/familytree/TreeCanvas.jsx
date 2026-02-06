@@ -31,7 +31,22 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
       spousePairs.set(edge.to_id, edge.from_id);
     });
 
-    // Position all generations normally (spouses together, no child repositioning)
+    // Build parent-child relationships
+    const childrenByParentPair = new Map();
+    tree.family_edges.filter(e => e.relation_type === 'parent_child').forEach(edge => {
+      const parentId = edge.from_id;
+      const childId = edge.to_id;
+      const spouseId = spousePairs.get(parentId);
+      if (spouseId) {
+        const pairKey = [parentId, spouseId].sort().join('-');
+        if (!childrenByParentPair.has(pairKey)) {
+          childrenByParentPair.set(pairKey, []);
+        }
+        childrenByParentPair.get(pairKey).push(childId);
+      }
+    });
+
+    // Position all generations
     Object.entries(generations).sort(([a], [b]) => parseInt(a) - parseInt(b)).forEach(([gen, persons]) => {
       const genNum = parseInt(gen);
       const spacing = 320;
@@ -70,6 +85,31 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
           centerY: finalY + 48
         };
       });
+    });
+
+    // Adjust children to be centered under marriage point
+    childrenByParentPair.forEach((children, pairKey) => {
+      const [parent1Id, parent2Id] = pairKey.split('-');
+      const pos1 = positions[parent1Id];
+      const pos2 = positions[parent2Id];
+
+      if (pos1 && pos2 && children.length > 0) {
+        // Marriage point is center of two spouses
+        const marriageCenterX = (pos1.centerX + pos2.centerX) / 2;
+        const spacing = 320;
+        
+        // Position children centered under marriage point
+        const childrenWidth = children.length * spacing;
+        const startChildX = marriageCenterX - childrenWidth / 2 + spacing / 2;
+
+        children.forEach((childId, idx) => {
+          if (positions[childId] && !customPositions[childId]) {
+            const childX = startChildX + idx * spacing;
+            positions[childId].x = childX;
+            positions[childId].centerX = childX;
+          }
+        });
+      }
     });
 
     return positions;
