@@ -247,24 +247,46 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
         const leftPos = pos1.centerX < pos2.centerX ? pos1 : pos2;
         const rightPos = pos1.centerX < pos2.centerX ? pos2 : pos1;
         
-        // Bottom of portraits (96px portrait height)
-        const spouseLineY = leftPos.y + 96;
+        // Bottom of portraits - use max Y to handle vertical dragging
+        const spouseLineY = Math.max(pos1.y, pos2.y) + 96;
         
         // Horizontal line between spouses at bottom
         connectors.push(
           <line
             key={`spouse-line-${idx}`}
-            x1={leftPos.centerX + 45}
-            y1={spouseLineY}
-            x2={rightPos.centerX - 45}
+            x1={pos1.centerX + 45}
+            y1={pos1.y + 96}
+            x2={pos1.centerX + 45}
             y2={spouseLineY}
+            stroke="#b45309"
+            strokeWidth="3"
+          />
+        );
+        connectors.push(
+          <line
+            key={`spouse-line-h-${idx}`}
+            x1={pos1.centerX + 45}
+            y1={spouseLineY}
+            x2={pos2.centerX - 45}
+            y2={spouseLineY}
+            stroke="#b45309"
+            strokeWidth="3"
+          />
+        );
+        connectors.push(
+          <line
+            key={`spouse-line-2-${idx}`}
+            x1={pos2.centerX - 45}
+            y1={spouseLineY}
+            x2={pos2.centerX - 45}
+            y2={pos2.y + 96}
             stroke="#b45309"
             strokeWidth="3"
           />
         );
         
         // Marriage node (pink/red square like in mockup)
-        const midX = (leftPos.centerX + rightPos.centerX) / 2;
+        const midX = (pos1.centerX + pos2.centerX) / 2;
         connectors.push(
           <rect
             key={`spouse-node-${idx}`}
@@ -298,7 +320,7 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
 
       // Marriage point (at bottom of portraits)
       const marriageX = (pos1.centerX + pos2.centerX) / 2;
-      const marriageY = pos1.y + 96;
+      const marriageY = Math.max(pos1.y, pos2.y) + 96;
       
       // Calculate horizontal bar position and range
       const childXPositions = childPositions.map(c => c.centerX);
