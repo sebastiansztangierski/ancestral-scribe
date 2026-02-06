@@ -148,13 +148,28 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
     if (draggingMarriageIdx !== null) {
       const pair = familyStructure.spousePairs[draggingMarriageIdx];
       const marriageKey = `${pair.parent1}-${pair.parent2}`;
+      const pos1 = positionMap[pair.parent1];
+      const pos2 = positionMap[pair.parent2];
+      
+      const currentMarriagePos = marriageNodePositions[marriageKey];
+      const oldMarriageX = currentMarriagePos?.x ?? (pos1.centerX + pos2.centerX) / 2;
+      const oldMarriageY = currentMarriagePos?.y ?? Math.max(pos1.y, pos2.y) + 96;
       
       const newX = e.clientX / transform.scale - dragStart.x;
       const newY = e.clientY / transform.scale - dragStart.y;
       
+      const deltaX = newX - oldMarriageX;
+      const deltaY = newY - oldMarriageY;
+      
       setMarriageNodePositions(prev => ({
         ...prev,
         [marriageKey]: { x: newX, y: newY }
+      }));
+      
+      setCustomPositions(prev => ({
+        ...prev,
+        [pair.parent1]: { x: pos1.x + deltaX, y: pos1.y + deltaY },
+        [pair.parent2]: { x: pos2.x + deltaX, y: pos2.y + deltaY }
       }));
     } else if (draggingPersonId) {
       const newX = e.clientX / transform.scale - dragStart.x;
