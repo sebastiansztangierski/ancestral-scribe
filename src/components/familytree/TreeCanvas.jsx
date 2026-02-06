@@ -7,6 +7,7 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [customPositions, setCustomPositions] = useState({});
+  const [marriageNodePositions, setMarriageNodePositions] = useState({});
   const [draggingPersonId, setDraggingPersonId] = useState(null);
   const [draggingMarriageIdx, setDraggingMarriageIdx] = useState(null);
 
@@ -124,8 +125,10 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
     setDraggingMarriageIdx(idx);
     const pos1 = positionMap[pair.parent1];
     const pos2 = positionMap[pair.parent2];
-    const midX = (pos1.centerX + pos2.centerX) / 2;
-    const midY = (pos1.centerY + pos2.centerY) / 2;
+    const marriageKey = `${pair.parent1}-${pair.parent2}`;
+    const currentMarriagePos = marriageNodePositions[marriageKey];
+    const midX = currentMarriagePos?.x ?? (pos1.centerX + pos2.centerX) / 2;
+    const midY = currentMarriagePos?.y ?? Math.max(pos1.y, pos2.y) + 96;
     setDragStart({ 
       x: e.clientX / transform.scale - midX, 
       y: e.clientY / transform.scale - midY 
@@ -144,22 +147,14 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
   const handleMouseMove = (e) => {
     if (draggingMarriageIdx !== null) {
       const pair = familyStructure.spousePairs[draggingMarriageIdx];
-      const pos1 = positionMap[pair.parent1];
-      const pos2 = positionMap[pair.parent2];
+      const marriageKey = `${pair.parent1}-${pair.parent2}`;
       
-      const oldMidX = (pos1.centerX + pos2.centerX) / 2;
-      const oldMidY = (pos1.centerY + pos2.centerY) / 2;
+      const newX = e.clientX / transform.scale - dragStart.x;
+      const newY = e.clientY / transform.scale - dragStart.y;
       
-      const newMidX = e.clientX / transform.scale - dragStart.x;
-      const newMidY = e.clientY / transform.scale - dragStart.y;
-      
-      const deltaX = newMidX - oldMidX;
-      const deltaY = newMidY - oldMidY;
-      
-      setCustomPositions(prev => ({
+      setMarriageNodePositions(prev => ({
         ...prev,
-        [pair.parent1]: { x: pos1.x + deltaX, y: pos1.y + deltaY },
-        [pair.parent2]: { x: pos2.x + deltaX, y: pos2.y + deltaY }
+        [marriageKey]: { x: newX, y: newY }
       }));
     } else if (draggingPersonId) {
       const newX = e.clientX / transform.scale - dragStart.x;
@@ -244,54 +239,45 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
       const pos2 = positionMap[pair.parent2];
       
       if (pos1 && pos2) {
-        const leftPos = pos1.centerX < pos2.centerX ? pos1 : pos2;
-        const rightPos = pos1.centerX < pos2.centerX ? pos2 : pos1;
+        const marriageKey = `${pair.parent1}-${pair.parent2}`;
+        const customMarriagePos = marriageNodePositions[marriageKey];
         
-        // Bottom of portraits - use max Y to handle vertical dragging
-        const spouseLineY = Math.max(pos1.y, pos2.y) + 96;
+        // Marriage node position - use custom or calculate default
+        const marriageX = customMarriagePos?.x ?? (pos1.centerX + pos2.centerX) / 2;
+        const marriageY = customMarriagePos?.y ?? Math.max(pos1.y, pos2.y) + 96;
         
-        // Horizontal line between spouses at bottom
+        // Connect parent 1 to marriage node
         connectors.push(
           <line
-            key={`spouse-line-${idx}`}
-            x1={pos1.centerX + 45}
+            key={`spouse-line-1-${idx}`}
+            x1={pos1.centerX}
             y1={pos1.y + 96}
-            x2={pos1.centerX + 45}
-            y2={spouseLineY}
+            x2={marriageX}
+            y2={marriageY}
             stroke="#b45309"
             strokeWidth="3"
           />
         );
-        connectors.push(
-          <line
-            key={`spouse-line-h-${idx}`}
-            x1={pos1.centerX + 45}
-            y1={spouseLineY}
-            x2={pos2.centerX - 45}
-            y2={spouseLineY}
-            stroke="#b45309"
-            strokeWidth="3"
-          />
-        );
+        
+        // Connect parent 2 to marriage node
         connectors.push(
           <line
             key={`spouse-line-2-${idx}`}
-            x1={pos2.centerX - 45}
-            y1={spouseLineY}
-            x2={pos2.centerX - 45}
-            y2={pos2.y + 96}
+            x1={pos2.centerX}
+            y1={pos2.y + 96}
+            x2={marriageX}
+            y2={marriageY}
             stroke="#b45309"
             strokeWidth="3"
           />
         );
         
-        // Marriage node (pink/red square like in mockup)
-        const midX = (pos1.centerX + pos2.centerX) / 2;
+        // Marriage node (pink/red square)
         connectors.push(
           <rect
             key={`spouse-node-${idx}`}
-            x={midX - 6}
-            y={spouseLineY - 6}
+            x={marriageX - 6}
+            y={marriageY - 6}
             width="12"
             height="12"
             fill="#dc2626"
@@ -318,9 +304,11 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
       
       if (childPositions.length === 0) return;
 
-      // Marriage point (at bottom of portraits)
-      const marriageX = (pos1.centerX + pos2.centerX) / 2;
-      const marriageY = Math.max(pos1.y, pos2.y) + 96;
+      // Marriage point - use custom position if set
+      const marriageKey = `${pair.parent1}-${pair.parent2}`;
+      const customMarriagePos = marriageNodePositions[marriageKey];
+      const marriageX = customMarriagePos?.x ?? (pos1.centerX + pos2.centerX) / 2;
+      const marriageY = customMarriagePos?.y ?? Math.max(pos1.y, pos2.y) + 96;
       
       // Calculate horizontal bar position and range
       const childXPositions = childPositions.map(c => c.centerX);
