@@ -91,33 +91,18 @@ export const generateFamilyTree = (config) => {
     currentGenCouples = nextGenCouples;
   }
 
-  // Add some special relations (but avoid creating ones that duplicate family relations)
-  const familyRelationshipSet = new Set();
-  familyEdges.forEach(edge => {
-    familyRelationshipSet.add(`${edge.from_id}-${edge.to_id}`);
-    familyRelationshipSet.add(`${edge.to_id}-${edge.from_id}`);
-  });
-
+  // Add some special relations
   const numSpecialRelations = Math.floor(persons.length * 0.15);
-  let attempts = 0;
-  while (specialRelations.length < numSpecialRelations && attempts < numSpecialRelations * 3) {
+  for (let i = 0; i < numSpecialRelations; i++) {
     const from = randomFrom(persons);
     const to = randomFrom(persons.filter(p => p.id !== from.id));
-    
     if (from && to) {
-      const relKey = `${from.id}-${to.id}`;
-      const reverseKey = `${to.id}-${from.id}`;
-      
-      // Only add if not already a family relation
-      if (!familyRelationshipSet.has(relKey) && !familyRelationshipSet.has(reverseKey)) {
-        specialRelations.push({
-          from_id: from.id,
-          to_id: to.id,
-          relation_type: randomFrom(SPECIAL_RELATION_TYPES)
-        });
-      }
+      specialRelations.push({
+        from_id: from.id,
+        to_id: to.id,
+        relation_type: randomFrom(SPECIAL_RELATION_TYPES)
+      });
     }
-    attempts++;
   }
 
   return {

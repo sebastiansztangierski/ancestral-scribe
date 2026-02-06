@@ -200,9 +200,9 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
       const marriageX = (pos1.centerX + pos2.centerX) / 2;
       const marriageY = pos1.centerY;
       
-      // Drop point between parents and children
-      const avgChildY = childPositions.reduce((sum, c) => sum + c.y, 0) / childPositions.length;
-      const dropY = marriageY + 60;
+      // Drop point halfway between parents and children
+      const firstChildY = childPositions[0].y;
+      const dropY = (marriageY + firstChildY) / 2;
       
       // Vertical line down from marriage point
       connectors.push(
@@ -252,25 +252,9 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
       });
     });
 
-    // Draw special relations (dashed lines) - but skip if they overlap with family relations
+    // Draw special relations (dashed lines)
     if (tree.special_relations) {
-      // Build set of existing family relationships to avoid duplicates
-      const familyRelationships = new Set();
-      tree.family_edges.forEach(edge => {
-        const key1 = `${edge.from_id}-${edge.to_id}`;
-        const key2 = `${edge.to_id}-${edge.from_id}`;
-        familyRelationships.add(key1);
-        familyRelationships.add(key2);
-      });
-
       tree.special_relations.forEach((rel, idx) => {
-        // Skip if this is a duplicate of a family relation
-        const relKey1 = `${rel.from_id}-${rel.to_id}`;
-        const relKey2 = `${rel.to_id}-${rel.from_id}`;
-        if (familyRelationships.has(relKey1) || familyRelationships.has(relKey2)) {
-          return;
-        }
-
         const fromPos = positionMap[rel.from_id];
         const toPos = positionMap[rel.to_id];
         
