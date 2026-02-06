@@ -372,17 +372,6 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
             key={`drop-${groupIdx}`}
             x1={marriageX}
             y1={marriageY}
-            x2={marriageX}
-            y2={dropY}
-            stroke="#b45309"
-            strokeWidth="3"
-          />
-        );
-        connectors.push(
-          <line
-            key={`child-drop-${groupIdx}-0`}
-            x1={marriageX}
-            y1={dropY}
             x2={childPositions[0].centerX}
             y2={childGenY - 5}
             stroke="#b45309"
