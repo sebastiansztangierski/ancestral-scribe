@@ -351,10 +351,11 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
         <svg
           className="absolute pointer-events-none"
           style={{
-            width: '100%',
-            height: '100%',
-            left: 0,
-            top: 0
+            width: '4000px',
+            height: '3000px',
+            left: '-2000px',
+            top: '-500px',
+            overflow: 'visible'
           }}
         >
           {renderConnectors()}
