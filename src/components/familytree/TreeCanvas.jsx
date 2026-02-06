@@ -88,13 +88,16 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
             const parent2Id = parents[1];
 
             // Check if this person is the only child of these parents
-            const siblings = tree.family_edges
-              .filter(e => e.relation_type === 'parent_child' && 
-                (e.from_id === parent1Id || e.from_id === parent2Id))
+            const siblingsFromParent1 = tree.family_edges
+              .filter(e => e.relation_type === 'parent_child' && e.from_id === parent1Id)
               .map(e => e.to_id);
-            const uniqueSiblings = [...new Set(siblings)];
+            const siblingsFromParent2 = tree.family_edges
+              .filter(e => e.relation_type === 'parent_child' && e.from_id === parent2Id)
+              .map(e => e.to_id);
+            // Find children common to both parents
+            const commonChildren = siblingsFromParent1.filter(id => siblingsFromParent2.includes(id));
 
-            if (uniqueSiblings.length === 1 && positions[parent1Id] && positions[parent2Id]) {
+            if (commonChildren.length === 1 && positions[parent1Id] && positions[parent2Id]) {
               // Single child - center under parents
               const marriageKey = `${parent1Id}-${parent2Id}`;
               const customMarriagePos = marriageNodePositions[marriageKey];
