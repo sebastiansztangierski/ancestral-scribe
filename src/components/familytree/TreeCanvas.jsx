@@ -367,63 +367,48 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
       const childGenY = childPositions[0].y;
       const dropY = childGenY - 30;
       
-      // Single child - straight line from marriage to child
-      if (childPositions.length === 1) {
+      // Straight line down from marriage point
+      connectors.push(
+        <line
+          key={`drop-${groupIdx}`}
+          x1={marriageX}
+          y1={marriageY}
+          x2={marriageX}
+          y2={dropY}
+          stroke="#b45309"
+          strokeWidth="3"
+        />
+      );
+
+      // Horizontal bar across all children
+      const firstChildX = childPositions[0].centerX;
+      const lastChildX = childPositions[childPositions.length - 1].centerX;
+      connectors.push(
+        <line
+          key={`hbar-${groupIdx}`}
+          x1={firstChildX}
+          y1={dropY}
+          x2={lastChildX}
+          y2={dropY}
+          stroke="#b45309"
+          strokeWidth="3"
+        />
+      );
+
+      // Vertical lines down to each child
+      childPositions.forEach((childPos, childIdx) => {
         connectors.push(
           <line
-            key={`drop-${groupIdx}`}
-            x1={marriageX}
-            y1={marriageY}
-            x2={childPositions[0].centerX}
+            key={`child-drop-${groupIdx}-${childIdx}`}
+            x1={childPos.centerX}
+            y1={dropY}
+            x2={childPos.centerX}
             y2={childGenY - 5}
             stroke="#b45309"
             strokeWidth="3"
           />
         );
-      } else {
-        // Multiple children - straight line down from marriage
-        connectors.push(
-          <line
-            key={`drop-${groupIdx}`}
-            x1={marriageX}
-            y1={marriageY}
-            x2={marriageX}
-            y2={dropY}
-            stroke="#b45309"
-            strokeWidth="3"
-          />
-        );
-
-        // Horizontal bar from first child to last child
-        const firstChildX = childPositions[0].centerX;
-        const lastChildX = childPositions[childPositions.length - 1].centerX;
-        connectors.push(
-          <line
-            key={`hbar-${groupIdx}`}
-            x1={firstChildX}
-            y1={dropY}
-            x2={lastChildX}
-            y2={dropY}
-            stroke="#b45309"
-            strokeWidth="3"
-          />
-        );
-
-        // Vertical lines down to each child
-        childPositions.forEach((childPos, childIdx) => {
-          connectors.push(
-            <line
-              key={`child-drop-${groupIdx}-${childIdx}`}
-              x1={childPos.centerX}
-              y1={dropY}
-              x2={childPos.centerX}
-              y2={childGenY - 5}
-              stroke="#b45309"
-              strokeWidth="3"
-            />
-          );
-        });
-      }
+      });
     });
 
     // Draw special relations (dashed lines)
