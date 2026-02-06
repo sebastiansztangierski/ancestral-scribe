@@ -77,53 +77,56 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
       });
 
       // Second pass: adjust for single children centered under parents
-      const processedIndices = new Set();
-      arranged.forEach((person, index) => {
-        if (processedIndices.has(index) || genNum === 0) return;
+      if (genNum > 0) {
+        const processedIndices = new Set();
         
-        const parents = tree.family_edges
-          .filter(e => e.relation_type === 'parent_child' && e.to_id === person.id)
-          .map(e => e.from_id);
+        arranged.forEach((person, index) => {
+          if (processedIndices.has(index)) return;
+          
+          const parents = tree.family_edges
+            .filter(e => e.relation_type === 'parent_child' && e.to_id === person.id)
+            .map(e => e.from_id);
 
-        if (parents.length === 2) {
-          const parent1Id = parents[0];
-          const parent2Id = parents[1];
+          if (parents.length === 2) {
+            const parent1Id = parents[0];
+            const parent2Id = parents[1];
 
-          // Check if this person is the only child of these parents
-          const siblingsFromParent1 = tree.family_edges
-            .filter(e => e.relation_type === 'parent_child' && e.from_id === parent1Id)
-            .map(e => e.to_id);
-          const siblingsFromParent2 = tree.family_edges
-            .filter(e => e.relation_type === 'parent_child' && e.from_id === parent2Id)
-            .map(e => e.to_id);
-          // Find children common to both parents
-          const commonChildren = siblingsFromParent1.filter(id => siblingsFromParent2.includes(id));
+            // Check if this person is the only child of these parents
+            const siblingsFromParent1 = tree.family_edges
+              .filter(e => e.relation_type === 'parent_child' && e.from_id === parent1Id)
+              .map(e => e.to_id);
+            const siblingsFromParent2 = tree.family_edges
+              .filter(e => e.relation_type === 'parent_child' && e.from_id === parent2Id)
+              .map(e => e.to_id);
+            // Find children common to both parents
+            const commonChildren = siblingsFromParent1.filter(id => siblingsFromParent2.includes(id));
 
-          if (commonChildren.length === 1 && positions[parent1Id] && positions[parent2Id]) {
-            // Single child - center under parents' marriage node
-            const marriageKey = `${parent1Id}-${parent2Id}`;
-            const reverseMarriageKey = `${parent2Id}-${parent1Id}`;
-            const customMarriagePos = marriageNodePositions[marriageKey] || marriageNodePositions[reverseMarriageKey];
-            const parentsCenterX = customMarriagePos?.x ?? (positions[parent1Id].centerX + positions[parent2Id].centerX) / 2;
+            if (commonChildren.length === 1 && positions[parent1Id] && positions[parent2Id]) {
+              // Single child - center under parents' marriage node
+              const marriageKey = `${parent1Id}-${parent2Id}`;
+              const reverseMarriageKey = `${parent2Id}-${parent1Id}`;
+              const customMarriagePos = marriageNodePositions[marriageKey] || marriageNodePositions[reverseMarriageKey];
+              const parentsCenterX = customMarriagePos?.x ?? (positions[parent1Id].centerX + positions[parent2Id].centerX) / 2;
 
-            // Check if person has spouse
-            const spouseId = spousePairs.get(person.id);
-            const spouseIndex = spouseId ? arranged.findIndex(p => p.id === spouseId) : -1;
+              // Check if person has spouse
+              const spouseId = spousePairs.get(person.id);
+              const spouseIndex = spouseId ? arranged.findIndex(p => p.id === spouseId) : -1;
 
-            if (spouseIndex > -1) {
-              // Position couple centered under parents
-              defaultPositions[index] = parentsCenterX - spacing / 2;
-              defaultPositions[spouseIndex] = parentsCenterX + spacing / 2;
-              processedIndices.add(index);
-              processedIndices.add(spouseIndex);
-            } else {
-              // Single person without spouse, center them
-              defaultPositions[index] = parentsCenterX;
-              processedIndices.add(index);
+              if (spouseIndex > -1 && !processedIndices.has(spouseIndex)) {
+                // Position couple centered under parents
+                defaultPositions[index] = parentsCenterX - spacing / 2;
+                defaultPositions[spouseIndex] = parentsCenterX + spacing / 2;
+                processedIndices.add(index);
+                processedIndices.add(spouseIndex);
+              } else if (spouseIndex === -1) {
+                // Single person without spouse, center them
+                defaultPositions[index] = parentsCenterX;
+                processedIndices.add(index);
+              }
             }
           }
-        }
-      });
+        });
+      }
 
       // Third pass: apply positions
       arranged.forEach((person, index) => {
