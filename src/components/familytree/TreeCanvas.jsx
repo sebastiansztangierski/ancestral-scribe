@@ -192,20 +192,17 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
       if (!pos1 || !pos2) return;
       
       const childArray = Array.from(children);
-      const childPositions = childArray.map(id => ({
-        id,
-        pos: positionMap[id]
-      })).filter(c => c.pos);
+      const childPositions = childArray.map(id => positionMap[id]).filter(Boolean);
       
       if (childPositions.length === 0) return;
 
       // Marriage point (center between spouses)
       const marriageX = (pos1.centerX + pos2.centerX) / 2;
-      const marriageY = (pos1.centerY + pos2.centerY) / 2;
+      const marriageY = pos1.centerY;
       
-      // Calculate drop point (halfway between parents and children)
-      const firstChildY = childPositions[0].pos.y;
-      const dropY = (marriageY + firstChildY) / 2;
+      // Drop point between parents and children
+      const avgChildY = childPositions.reduce((sum, c) => sum + c.y, 0) / childPositions.length;
+      const dropY = marriageY + 60;
       
       // Vertical line down from marriage point
       connectors.push(
@@ -221,7 +218,7 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
       );
 
       // Horizontal bar connecting to children
-      const childXPositions = childPositions.map(c => c.pos.centerX);
+      const childXPositions = childPositions.map(c => c.centerX);
       const minChildX = Math.min(...childXPositions);
       const maxChildX = Math.max(...childXPositions);
       
@@ -240,7 +237,7 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
       }
 
       // Vertical lines down to each child
-      childPositions.forEach(({ pos: childPos }, childIdx) => {
+      childPositions.forEach((childPos, childIdx) => {
         connectors.push(
           <line
             key={`child-drop-${groupIdx}-${childIdx}`}
