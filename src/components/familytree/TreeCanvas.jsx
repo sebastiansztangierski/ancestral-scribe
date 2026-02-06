@@ -87,31 +87,7 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
       });
     });
 
-    // Position first child directly under marriage point
-    childrenByParentPair.forEach((children, pairKey) => {
-      const [parent1Id, parent2Id] = pairKey.split('-');
-      const pos1 = positions[parent1Id];
-      const pos2 = positions[parent2Id];
 
-      if (pos1 && pos2 && children.length > 0) {
-        const marriageCenterX = (pos1.centerX + pos2.centerX) / 2;
-        const spacing = 320;
-        const childArray = Array.from(children);
-        
-        // First child centered under marriage point
-        const firstChildX = marriageCenterX;
-        // Others spread to the right from first child
-        const startChildX = firstChildX;
-
-        childArray.forEach((childId, idx) => {
-          if (positions[childId] && !customPositions[childId]) {
-            const childX = startChildX + idx * spacing;
-            positions[childId].x = childX;
-            positions[childId].centerX = childX;
-          }
-        });
-      }
-    });
 
     return positions;
   }, [tree.persons, tree.family_edges, customPositions]);
