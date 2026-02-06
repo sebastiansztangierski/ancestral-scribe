@@ -6,6 +6,8 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
   const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [customPositions, setCustomPositions] = useState({});
+  const [draggingPersonId, setDraggingPersonId] = useState(null);
 
   // Build a stable position map for all persons
   const positionMap = useMemo(() => {
@@ -58,17 +60,25 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
       const startX = -genWidth / 2 + spacing / 2;
       
       arranged.forEach((person, index) => {
+        const defaultX = startX + index * spacing;
+        const defaultY = genNum * 180;
+        
+        // Use custom position if available, otherwise use calculated position
+        const customPos = customPositions[person.id];
+        const x = customPos ? customPos.x : defaultX;
+        const y = customPos ? customPos.y : defaultY;
+        
         positions[person.id] = {
-          x: startX + index * spacing,
-          y: genNum * 180,
-          centerX: startX + index * spacing,
-          centerY: genNum * 180 + 48
+          x,
+          y,
+          centerX: x,
+          centerY: y + 48
         };
       });
     });
 
     return positions;
-  }, [tree.persons, tree.family_edges]);
+  }, [tree.persons, tree.family_edges, customPositions]);
 
   // Organize persons by generation for rendering
   const generations = useMemo(() => {
@@ -96,7 +106,18 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
     }));
   };
 
-  // Handle drag start
+  // Handle portrait drag start
+  const handlePortraitMouseDown = (e, personId) => {
+    e.stopPropagation();
+    setDraggingPersonId(personId);
+    const pos = positionMap[personId];
+    setDragStart({ 
+      x: e.clientX / transform.scale - pos.x, 
+      y: e.clientY / transform.scale - pos.y 
+    });
+  };
+
+  // Handle canvas drag start
   const handleMouseDown = (e) => {
     if (e.target === containerRef.current || e.target.closest('.canvas-background')) {
       setIsDragging(true);
@@ -106,7 +127,14 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
 
   // Handle drag
   const handleMouseMove = (e) => {
-    if (isDragging) {
+    if (draggingPersonId) {
+      const newX = e.clientX / transform.scale - dragStart.x;
+      const newY = e.clientY / transform.scale - dragStart.y;
+      setCustomPositions(prev => ({
+        ...prev,
+        [draggingPersonId]: { x: newX, y: newY }
+      }));
+    } else if (isDragging) {
       setTransform(prev => ({
         ...prev,
         x: e.clientX - dragStart.x,
@@ -118,6 +146,7 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
   // Handle drag end
   const handleMouseUp = () => {
     setIsDragging(false);
+    setDraggingPersonId(null);
   };
 
   // Center on selected person
@@ -370,12 +399,13 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
           return (
             <div
               key={person.id}
-              className="absolute"
+              className="absolute cursor-move"
               style={{
                 left: `${pos.x}px`,
                 top: `${pos.y}px`,
                 transform: 'translateX(-50%)'
               }}
+              onMouseDown={(e) => handlePortraitMouseDown(e, person.id)}
             >
               <CharacterNode
                 person={person}
