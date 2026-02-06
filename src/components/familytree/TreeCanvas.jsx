@@ -112,7 +112,13 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
 
     // Find all spouse pairs
     tree.family_edges.filter(e => e.relation_type === 'spouse').forEach(edge => {
-      spousePairs.push({ parent1: edge.from_id, parent2: edge.to_id });
+      const parent1 = edge.from_id;
+      const parent2 = edge.to_id;
+      spousePairs.push({ parent1, parent2 });
+      
+      // Initialize children set for this pair
+      const pairKey = [parent1, parent2].sort().join('-');
+      childrenByParents[pairKey] = { pair: { parent1, parent2 }, children: new Set() };
     });
 
     // Group children by their parent pairs
@@ -121,13 +127,12 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
       const childId = edge.to_id;
       
       // Find which spouse pair this parent belongs to
-      const pair = spousePairs.find(p => p.parent1 === parentId || p.parent2 === parentId);
-      if (pair) {
-        const pairKey = [pair.parent1, pair.parent2].sort().join('-');
-        if (!childrenByParents[pairKey]) {
-          childrenByParents[pairKey] = { pair, children: new Set() };
+      for (const pairKey in childrenByParents) {
+        const { pair } = childrenByParents[pairKey];
+        if (pair.parent1 === parentId || pair.parent2 === parentId) {
+          childrenByParents[pairKey].children.add(childId);
+          break;
         }
-        childrenByParents[pairKey].children.add(childId);
       }
     });
 
