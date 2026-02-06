@@ -200,39 +200,44 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
       const marriageX = (pos1.centerX + pos2.centerX) / 2;
       const marriageY = pos1.centerY;
       
-      // Child generation Y position
+      // Calculate horizontal bar position and range
+      const childXPositions = childPositions.map(c => c.centerX);
+      const minChildX = Math.min(...childXPositions);
+      const maxChildX = Math.max(...childXPositions);
+      const childrenCenterX = (minChildX + maxChildX) / 2;
+      
+      // Drop point halfway to children
       const childGenY = childPositions[0].y;
       const dropY = (marriageY + childGenY) / 2;
       
-      // Vertical line down from marriage point to horizontal bar
+      // Vertical line from marriage point down to horizontal bar level
+      const targetX = childPositions.length === 1 ? childPositions[0].centerX : childrenCenterX;
       connectors.push(
         <line
           key={`drop-${groupIdx}`}
           x1={marriageX}
           y1={marriageY + 6}
-          x2={marriageX}
+          x2={targetX}
           y2={dropY}
           stroke="#b45309"
           strokeWidth="3"
         />
       );
 
-      // Horizontal bar (even for single child, makes it clearer)
-      const childXPositions = childPositions.map(c => c.centerX);
-      const minChildX = Math.min(...childXPositions);
-      const maxChildX = Math.max(...childXPositions);
-      
-      connectors.push(
-        <line
-          key={`hbar-${groupIdx}`}
-          x1={childPositions.length === 1 ? marriageX : minChildX}
-          y1={dropY}
-          x2={childPositions.length === 1 ? marriageX : maxChildX}
-          y2={dropY}
-          stroke="#b45309"
-          strokeWidth="3"
-        />
-      );
+      // Horizontal bar spanning all children
+      if (childPositions.length > 1) {
+        connectors.push(
+          <line
+            key={`hbar-${groupIdx}`}
+            x1={minChildX}
+            y1={dropY}
+            x2={maxChildX}
+            y2={dropY}
+            stroke="#b45309"
+            strokeWidth="3"
+          />
+        );
+      }
 
       // Vertical lines down to each child
       childPositions.forEach((childPos, childIdx) => {
