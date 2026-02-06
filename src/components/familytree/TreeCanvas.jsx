@@ -135,8 +135,8 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
 
         // Use custom position if available, otherwise use calculated position
         const customPos = customPositions[person.id];
-        const x = customPos ? customPos.x : defaultX;
-        const y = customPos ? customPos.y : defaultY;
+        const x = customPos?.x ?? defaultX;
+        const y = customPos?.y ?? defaultY;
 
         positions[person.id] = {
           x,
