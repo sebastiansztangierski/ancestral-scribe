@@ -78,9 +78,11 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
 
       // Second pass: adjust for single children centered under parents
       if (genNum > 0) {
+        const processedIds = new Set();
+        
         arranged.forEach((person, index) => {
-          // Skip if already adjusted via spouse
-          if (defaultPositions[index] === null) return;
+          // Skip if already processed
+          if (processedIds.has(person.id)) return;
           
           const parents = tree.family_edges
             .filter(e => e.relation_type === 'parent_child' && e.to_id === person.id)
@@ -106,9 +108,9 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
               const customMarriagePos = marriageNodePositions[marriageKey] || marriageNodePositions[reverseMarriageKey];
               const parentsCenterX = customMarriagePos?.x ?? (positions[parent1Id].centerX + positions[parent2Id].centerX) / 2;
 
-              // Check if person has spouse (should be next to them in arranged array)
+              // Check if person has spouse
               const spouseId = spousePairs.get(person.id);
-              const spouseIndex = arranged.findIndex((p, i) => i !== index && p.id === spouseId);
+              const spouseIndex = spouseId ? arranged.findIndex(p => p.id === spouseId) : -1;
 
               if (spouseIndex !== -1) {
                 // Position couple centered under parents
@@ -116,11 +118,12 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
                 const rightIndex = Math.max(index, spouseIndex);
                 defaultPositions[leftIndex] = parentsCenterX - spacing / 2;
                 defaultPositions[rightIndex] = parentsCenterX + spacing / 2;
-                // Mark both as processed
-                defaultPositions[rightIndex] = defaultPositions[rightIndex]; // Keep the value but mark as processed
+                processedIds.add(person.id);
+                processedIds.add(spouseId);
               } else {
                 // Single person without spouse, center them
                 defaultPositions[index] = parentsCenterX;
+                processedIds.add(person.id);
               }
             }
           }
