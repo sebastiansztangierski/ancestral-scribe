@@ -66,79 +66,74 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
         }
       });
 
-      // Position arranged persons - center all children under their parents
-      if (genNum === 0) {
-        // Generation 0 - position normally
-        const genWidth = arranged.length * spacing;
-        const startX = -genWidth / 2 + spacing / 2;
-        
-        arranged.forEach((person, index) => {
-          const y = genNum * 180;
-          const x = startX + index * spacing;
-          
-          const customPos = customPositions[person.id];
-          const finalX = customPos?.x ?? x;
-          const finalY = customPos?.y ?? y;
+      // Position arranged persons
+      const genWidth = arranged.length * spacing;
+      const startX = -genWidth / 2 + spacing / 2;
+      const processedIds = new Set();
+      
+      // First pass: identify single children and their positioning
+      const singleChildPositions = new Map();
+      arranged.forEach((person) => {
+        const parents = tree.family_edges
+          .filter(e => e.relation_type === 'parent_child' && e.to_id === person.id)
+          .map(e => e.from_id);
 
-          positions[person.id] = {
-            x: finalX,
-            y: finalY,
-            centerX: finalX,
-            centerY: finalY + 48
-          };
-        });
-      } else {
-        // Generation 1+ - group children by parents and center under marriage node
-        const childrenGroups = new Map(); // Map of parent pair key -> array of children
-        
-        arranged.forEach((person) => {
-          const parents = tree.family_edges
-            .filter(e => e.relation_type === 'parent_child' && e.to_id === person.id)
-            .map(e => e.from_id);
-
-          if (parents.length === 2) {
-            const pairKey = [parents[0], parents[1]].sort().join('-');
-            if (!childrenGroups.has(pairKey)) {
-              childrenGroups.set(pairKey, { parents, children: [] });
-            }
-            childrenGroups.get(pairKey).children.push(person);
-          }
-        });
-
-        // Position each group centered under their parents
-        childrenGroups.forEach(({ parents, children }) => {
+        if (parents.length === 2 && genNum > 0) {
           const parent1Id = parents[0];
           const parent2Id = parents[1];
-          
-          if (!positions[parent1Id] || !positions[parent2Id]) return;
-          
-          const marriageKey = `${parent1Id}-${parent2Id}`;
-          const reverseMarriageKey = `${parent2Id}-${parent1Id}`;
-          const customMarriagePos = marriageNodePositions[marriageKey] || marriageNodePositions[reverseMarriageKey];
-          const parentsCenterX = customMarriagePos?.x ?? (positions[parent1Id].centerX + positions[parent2Id].centerX) / 2;
-          
-          // Calculate group width and starting position
-          const groupWidth = children.length * spacing;
-          const groupStartX = parentsCenterX - groupWidth / 2 + spacing / 2;
-          
-          // Position each child in the group
-          children.forEach((child, index) => {
-            const y = genNum * 180;
-            const x = groupStartX + index * spacing;
-            
-            const customPos = customPositions[child.id];
-            const finalX = customPos?.x ?? x;
-            const finalY = customPos?.y ?? y;
 
-            positions[child.id] = {
-              x: finalX,
-              y: finalY,
-              centerX: finalX,
-              centerY: finalY + 48
-            };
-          });
-        });
-      }
+          // Check if this person is the only child of these parents
+          const siblingsFromParent1 = tree.family_edges
+            .filter(e => e.relation_type === 'parent_child' && e.from_id === parent1Id)
+            .map(e => e.to_id);
+          const siblingsFromParent2 = tree.family_edges
+            .filter(e => e.relation_type === 'parent_child' && e.from_id === parent2Id)
+            .map(e => e.to_id);
+          const commonChildren = siblingsFromParent1.filter(id => siblingsFromParent2.includes(id));
+
+          if (commonChildren.length === 1 && positions[parent1Id] && positions[parent2Id]) {
+            // Single child - calculate marriage node center
+            const marriageKey = `${parent1Id}-${parent2Id}`;
+            const reverseMarriageKey = `${parent2Id}-${parent1Id}`;
+            const customMarriagePos = marriageNodePositions[marriageKey] || marriageNodePositions[reverseMarriageKey];
+            const parentsCenterX = customMarriagePos?.x ?? (positions[parent1Id].centerX + positions[parent2Id].centerX) / 2;
+
+            // Single child is centered directly under marriage node
+            singleChildPositions.set(person.id, parentsCenterX);
+            
+            // If they have a spouse, position spouse next to them
+            const spouseId = spousePairs.get(person.id);
+            if (spouseId) {
+              singleChildPositions.set(spouseId, parentsCenterX + spacing);
+            }
+          }
+        }
+      });
+      
+      // Second pass: apply positions
+      arranged.forEach((person, index) => {
+        const y = genNum * 180;
+        
+        // Check if this person has special positioning
+        let x;
+        if (singleChildPositions.has(person.id)) {
+          x = singleChildPositions.get(person.id);
+        } else {
+          x = startX + index * spacing;
+        }
+        
+        // Use custom position if available, otherwise use calculated position
+        const customPos = customPositions[person.id];
+        const finalX = customPos?.x ?? x;
+        const finalY = customPos?.y ?? y;
+
+        positions[person.id] = {
+          x: finalX,
+          y: finalY,
+          centerX: finalX,
+          centerY: finalY + 48
+        };
+      });
     });
 
     return positions;
