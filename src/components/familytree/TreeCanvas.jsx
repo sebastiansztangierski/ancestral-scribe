@@ -179,6 +179,27 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
     setDraggingMarriageIdx(null);
   };
 
+  // Initialize marriage node positions when tree loads
+  useEffect(() => {
+    const initialPositions = {};
+    familyStructure.spousePairs.forEach((pair) => {
+      const marriageKey = `${pair.parent1}-${pair.parent2}`;
+      if (!marriageNodePositions[marriageKey]) {
+        const pos1 = positionMap[pair.parent1];
+        const pos2 = positionMap[pair.parent2];
+        if (pos1 && pos2) {
+          initialPositions[marriageKey] = {
+            x: (pos1.centerX + pos2.centerX) / 2,
+            y: Math.max(pos1.y, pos2.y) + 96
+          };
+        }
+      }
+    });
+    if (Object.keys(initialPositions).length > 0) {
+      setMarriageNodePositions(prev => ({ ...prev, ...initialPositions }));
+    }
+  }, [tree.persons, tree.family_edges]);
+
   // Center on selected person
   useEffect(() => {
     if (selectedPerson && containerRef.current) {
