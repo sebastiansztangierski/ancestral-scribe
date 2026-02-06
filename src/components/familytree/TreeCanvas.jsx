@@ -70,25 +70,80 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
       const genWidth = arranged.length * spacing;
       const startX = -genWidth / 2 + spacing / 2;
       
-      // Calculate positions
-      const processedIds = new Set();
-      
-      // Third pass: apply positions
+      // Calculate and apply positions
       arranged.forEach((person, index) => {
-        const defaultX = defaultPositions[index];
-        const defaultY = genNum * 180;
+        if (processedIds.has(person.id)) return;
+        
+        let x = startX + index * spacing;
+        const y = genNum * 180;
+        
+        // Check if this is a single child that should be centered under parents
+        if (genNum > 0) {
+          const parents = tree.family_edges
+            .filter(e => e.relation_type === 'parent_child' && e.to_id === person.id)
+            .map(e => e.from_id);
 
+          if (parents.length === 2) {
+            const parent1Id = parents[0];
+            const parent2Id = parents[1];
+
+            // Check if this person is the only child of these parents
+            const siblingsFromParent1 = tree.family_edges
+              .filter(e => e.relation_type === 'parent_child' && e.from_id === parent1Id)
+              .map(e => e.to_id);
+            const siblingsFromParent2 = tree.family_edges
+              .filter(e => e.relation_type === 'parent_child' && e.from_id === parent2Id)
+              .map(e => e.to_id);
+            const commonChildren = siblingsFromParent1.filter(id => siblingsFromParent2.includes(id));
+
+            if (commonChildren.length === 1 && positions[parent1Id] && positions[parent2Id]) {
+              // Single child - calculate marriage node center
+              const marriageKey = `${parent1Id}-${parent2Id}`;
+              const reverseMarriageKey = `${parent2Id}-${parent1Id}`;
+              const customMarriagePos = marriageNodePositions[marriageKey] || marriageNodePositions[reverseMarriageKey];
+              const parentsCenterX = customMarriagePos?.x ?? (positions[parent1Id].centerX + positions[parent2Id].centerX) / 2;
+
+              // Check if person has spouse
+              const spouseId = spousePairs.get(person.id);
+              const spouse = spouseId ? arranged.find(p => p.id === spouseId) : null;
+
+              if (spouse) {
+                // Position couple centered under parents
+                const customPos1 = customPositions[person.id];
+                const customPos2 = customPositions[spouseId];
+                
+                const x1 = customPos1?.x ?? (parentsCenterX - spacing / 2);
+                const x2 = customPos2?.x ?? (parentsCenterX + spacing / 2);
+                const y1 = customPos1?.y ?? y;
+                const y2 = customPos2?.y ?? y;
+                
+                positions[person.id] = { x: x1, y: y1, centerX: x1, centerY: y1 + 48 };
+                positions[spouseId] = { x: x2, y: y2, centerX: x2, centerY: y2 + 48 };
+                
+                processedIds.add(person.id);
+                processedIds.add(spouseId);
+                return;
+              } else {
+                // Single person without spouse, center them
+                x = parentsCenterX;
+              }
+            }
+          }
+        }
+        
         // Use custom position if available, otherwise use calculated position
         const customPos = customPositions[person.id];
-        const x = customPos?.x ?? defaultX;
-        const y = customPos?.y ?? defaultY;
+        const finalX = customPos?.x ?? x;
+        const finalY = customPos?.y ?? y;
 
         positions[person.id] = {
-          x,
-          y,
-          centerX: x,
-          centerY: y + 48
+          x: finalX,
+          y: finalY,
+          centerX: finalX,
+          centerY: finalY + 48
         };
+        
+        processedIds.add(person.id);
       });
     });
 
