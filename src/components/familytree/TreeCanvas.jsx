@@ -101,7 +101,10 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
 
           if (commonChildren.length === 1 && positions[parent1Id] && positions[parent2Id]) {
             // Single child - center under parents
-            const parentsCenterX = (positions[parent1Id].centerX + positions[parent2Id].centerX) / 2;
+            const marriageKey = `${parent1Id}-${parent2Id}`;
+            const reverseMarriageKey = `${parent2Id}-${parent1Id}`;
+            const customMarriagePos = marriageNodePositions[marriageKey] || marriageNodePositions[reverseMarriageKey];
+            const parentsCenterX = customMarriagePos?.x ?? (positions[parent1Id].centerX + positions[parent2Id].centerX) / 2;
 
             // Check if person has spouse
             const spouseId = spousePairs.get(person.id);
@@ -109,8 +112,10 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
 
             if (spouseIndex > -1 && !processedIndices.has(spouseIndex)) {
               // Position couple centered under parents
-              defaultPositions[index] = parentsCenterX - spacing / 2;
-              defaultPositions[spouseIndex] = parentsCenterX + spacing / 2;
+              const coupleLeftX = parentsCenterX - spacing / 2;
+              const coupleRightX = parentsCenterX + spacing / 2;
+              defaultPositions[index] = coupleLeftX;
+              defaultPositions[spouseIndex] = coupleRightX;
               processedIndices.add(index);
               processedIndices.add(spouseIndex);
             } else if (spouseIndex === -1) {
