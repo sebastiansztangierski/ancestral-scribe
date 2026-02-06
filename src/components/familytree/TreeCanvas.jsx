@@ -192,16 +192,22 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
       if (!pos1 || !pos2) return;
       
       const childArray = Array.from(children);
-      const childPositions = childArray.map(id => positionMap[id]).filter(Boolean);
+      const childPositions = childArray.map(id => ({
+        id,
+        pos: positionMap[id]
+      })).filter(c => c.pos);
       
       if (childPositions.length === 0) return;
 
       // Marriage point (center between spouses)
-      const marriageX = (pos1.x + pos2.x) / 2;
-      const marriageY = pos1.centerY;
+      const marriageX = (pos1.centerX + pos2.centerX) / 2;
+      const marriageY = (pos1.centerY + pos2.centerY) / 2;
+      
+      // Calculate drop point (halfway between parents and children)
+      const firstChildY = childPositions[0].pos.y;
+      const dropY = (marriageY + firstChildY) / 2;
       
       // Vertical line down from marriage point
-      const dropY = marriageY + 50;
       connectors.push(
         <line
           key={`drop-${groupIdx}`}
@@ -215,7 +221,7 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
       );
 
       // Horizontal bar connecting to children
-      const childXPositions = childPositions.map(p => p.x);
+      const childXPositions = childPositions.map(c => c.pos.centerX);
       const minChildX = Math.min(...childXPositions);
       const maxChildX = Math.max(...childXPositions);
       
@@ -234,13 +240,13 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
       }
 
       // Vertical lines down to each child
-      childPositions.forEach((childPos, childIdx) => {
+      childPositions.forEach(({ pos: childPos }, childIdx) => {
         connectors.push(
           <line
             key={`child-drop-${groupIdx}-${childIdx}`}
-            x1={childPos.x}
+            x1={childPos.centerX}
             y1={dropY}
-            x2={childPos.x}
+            x2={childPos.centerX}
             y2={childPos.y - 5}
             stroke="#b45309"
             strokeWidth="3"
