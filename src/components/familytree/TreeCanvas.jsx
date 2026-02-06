@@ -252,9 +252,25 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
       });
     });
 
-    // Draw special relations (dashed lines)
+    // Draw special relations (dashed lines) - but skip if they overlap with family relations
     if (tree.special_relations) {
+      // Build set of existing family relationships to avoid duplicates
+      const familyRelationships = new Set();
+      tree.family_edges.forEach(edge => {
+        const key1 = `${edge.from_id}-${edge.to_id}`;
+        const key2 = `${edge.to_id}-${edge.from_id}`;
+        familyRelationships.add(key1);
+        familyRelationships.add(key2);
+      });
+
       tree.special_relations.forEach((rel, idx) => {
+        // Skip if this is a duplicate of a family relation
+        const relKey1 = `${rel.from_id}-${rel.to_id}`;
+        const relKey2 = `${rel.to_id}-${rel.from_id}`;
+        if (familyRelationships.has(relKey1) || familyRelationships.has(relKey2)) {
+          return;
+        }
+
         const fromPos = positionMap[rel.from_id];
         const toPos = positionMap[rel.to_id];
         
