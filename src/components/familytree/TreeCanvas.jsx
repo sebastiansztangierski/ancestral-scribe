@@ -304,28 +304,51 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
       const childXPositions = childPositions.map(c => c.centerX);
       const minChildX = Math.min(...childXPositions);
       const maxChildX = Math.max(...childXPositions);
-      const childrenCenterX = (minChildX + maxChildX) / 2;
       
-      // Drop point halfway to children
+      // Horizontal bar just above children
       const childGenY = childPositions[0].y;
-      const dropY = (marriageY + childGenY) / 2;
+      const dropY = childGenY - 30;
       
-      // Vertical line from marriage node down to horizontal bar level
-      const targetX = childPositions.length === 1 ? childPositions[0].centerX : childrenCenterX;
-      connectors.push(
-        <line
-          key={`drop-${groupIdx}`}
-          x1={marriageX}
-          y1={marriageY}
-          x2={targetX}
-          y2={dropY}
-          stroke="#b45309"
-          strokeWidth="3"
-        />
-      );
+      // Single child - straight line from marriage to child
+      if (childPositions.length === 1) {
+        connectors.push(
+          <line
+            key={`drop-${groupIdx}`}
+            x1={marriageX}
+            y1={marriageY}
+            x2={childPositions[0].centerX}
+            y2={dropY}
+            stroke="#b45309"
+            strokeWidth="3"
+          />
+        );
+        connectors.push(
+          <line
+            key={`child-drop-${groupIdx}-0`}
+            x1={childPositions[0].centerX}
+            y1={dropY}
+            x2={childPositions[0].centerX}
+            y2={childGenY - 5}
+            stroke="#b45309"
+            strokeWidth="3"
+          />
+        );
+      } else {
+        // Multiple children - line down to horizontal bar
+        const childrenCenterX = (minChildX + maxChildX) / 2;
+        connectors.push(
+          <line
+            key={`drop-${groupIdx}`}
+            x1={marriageX}
+            y1={marriageY}
+            x2={childrenCenterX}
+            y2={dropY}
+            stroke="#b45309"
+            strokeWidth="3"
+          />
+        );
 
-      // Horizontal bar spanning all children
-      if (childPositions.length > 1) {
+        // Horizontal bar spanning all children
         connectors.push(
           <line
             key={`hbar-${groupIdx}`}
@@ -337,22 +360,22 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
             strokeWidth="3"
           />
         );
-      }
 
-      // Vertical lines down to each child
-      childPositions.forEach((childPos, childIdx) => {
-        connectors.push(
-          <line
-            key={`child-drop-${groupIdx}-${childIdx}`}
-            x1={childPos.centerX}
-            y1={dropY}
-            x2={childPos.centerX}
-            y2={childPos.y - 5}
-            stroke="#b45309"
-            strokeWidth="3"
-          />
-        );
-      });
+        // Vertical lines down to each child
+        childPositions.forEach((childPos, childIdx) => {
+          connectors.push(
+            <line
+              key={`child-drop-${groupIdx}-${childIdx}`}
+              x1={childPos.centerX}
+              y1={dropY}
+              x2={childPos.centerX}
+              y2={childGenY - 5}
+              stroke="#b45309"
+              strokeWidth="3"
+            />
+          );
+        });
+      }
     });
 
     // Draw special relations (dashed lines)
