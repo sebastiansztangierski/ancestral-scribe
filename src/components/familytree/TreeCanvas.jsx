@@ -159,10 +159,10 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
       arranged.forEach((person, index) => {
         const y = genNum * 180;
         
-        // Check if this person has special positioning
+        // Check if this person has special positioning (centered under parents)
         let x;
-        if (singleChildPositions.has(person.id)) {
-          x = singleChildPositions.get(person.id);
+        if (specialPositions.has(person.id)) {
+          x = specialPositions.get(person.id);
         } else {
           x = startX + index * spacing;
         }
