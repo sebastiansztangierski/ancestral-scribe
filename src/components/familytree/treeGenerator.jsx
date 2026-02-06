@@ -78,11 +78,13 @@ export const generateFamilyTree = (config) => {
         familyEdges.push({ from_id: couple.parent1.id, to_id: child.id, relation_type: 'parent_child' });
         familyEdges.push({ from_id: couple.parent2.id, to_id: child.id, relation_type: 'parent_child' });
 
-        // Children who will have descendants need spouses
+        // All children need spouses to ensure everyone is connected
+        const spouse = createPerson(gen, null, usedPortraits, unknownChance, child.gender === 'male' ? 'female' : 'male');
+        persons.push(spouse);
+        familyEdges.push({ from_id: child.id, to_id: spouse.id, relation_type: 'spouse' });
+        
+        // Only couples in non-final generations will have children
         if (gen < generations - 1) {
-          const spouse = createPerson(gen, null, usedPortraits, unknownChance, child.gender === 'male' ? 'female' : 'male');
-          persons.push(spouse);
-          familyEdges.push({ from_id: child.id, to_id: spouse.id, relation_type: 'spouse' });
           nextGenCouples.push({ parent1: child, parent2: spouse });
         }
       }
