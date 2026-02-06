@@ -31,30 +31,14 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
       spousePairs.set(edge.to_id, edge.from_id);
     });
 
-    // Build parent-child relationships map
-    const childrenByParentPair = new Map();
-    tree.family_edges.filter(e => e.relation_type === 'parent_child').forEach(edge => {
-      const childId = edge.to_id;
-      const parentId = edge.from_id;
-      const spouseId = spousePairs.get(parentId);
-      if (spouseId) {
-        const pairKey = [parentId, spouseId].sort().join('-');
-        if (!childrenByParentPair.has(pairKey)) {
-          childrenByParentPair.set(pairKey, []);
-        }
-        childrenByParentPair.get(pairKey).push(childId);
-      }
-    });
-
-    // Position all generations
+    // Position all generations normally (spouses together, no child repositioning)
     Object.entries(generations).sort(([a], [b]) => parseInt(a) - parseInt(b)).forEach(([gen, persons]) => {
       const genNum = parseInt(gen);
       const spacing = 320;
       const y = genNum * 250;
       
-      // Separate into spouse pairs and singles
       const processed = new Set();
-      const units = [];
+      const arranged = [];
       
       persons.forEach(person => {
         if (processed.has(person.id)) return;
@@ -62,59 +46,30 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
         const spouse = spouseId ? persons.find(p => p.id === spouseId) : null;
 
         if (spouse && !processed.has(spouse.id)) {
-          units.push([person, spouse]);
+          arranged.push(person, spouse);
           processed.add(person.id);
           processed.add(spouse.id);
         } else if (!processed.has(person.id)) {
-          units.push([person]);
+          arranged.push(person);
           processed.add(person.id);
         }
       });
 
-      // Position each unit (couple or single)
-      const totalWidth = units.length * spacing;
+      const totalWidth = arranged.length * spacing;
       const startX = -totalWidth / 2 + spacing / 2;
 
-      units.forEach((unit, unitIndex) => {
-        const unitBaseX = startX + unitIndex * spacing;
-        
-        // Position members of this unit
-        unit.forEach((person, memberIdx) => {
-          const offset = (unit.length === 2 && memberIdx === 1) ? 140 : (unit.length === 2 ? -70 : 0);
-          const customPos = customPositions[person.id];
-          const finalX = customPos?.x ?? (unitBaseX + offset);
-          const finalY = customPos?.y ?? y;
+      arranged.forEach((person, index) => {
+        const customPos = customPositions[person.id];
+        const finalX = customPos?.x ?? (startX + index * spacing);
+        const finalY = customPos?.y ?? y;
 
-          positions[person.id] = {
-            x: finalX,
-            y: finalY,
-            centerX: finalX,
-            centerY: finalY + 48
-          };
-        });
+        positions[person.id] = {
+          x: finalX,
+          y: finalY,
+          centerX: finalX,
+          centerY: finalY + 48
+        };
       });
-    });
-
-    // Adjust children to center under parents
-    childrenByParentPair.forEach((children, pairKey) => {
-      const [parent1Id, parent2Id] = pairKey.split('-');
-      const pos1 = positions[parent1Id];
-      const pos2 = positions[parent2Id];
-
-      if (pos1 && pos2 && children.length > 0) {
-        const spacing = 320;
-        const parentsCenterX = (pos1.centerX + pos2.centerX) / 2;
-        const childrenWidth = children.length * spacing;
-        const startChildX = parentsCenterX - childrenWidth / 2 + spacing / 2;
-
-        children.forEach((childId, idx) => {
-          if (positions[childId] && !customPositions[childId]) {
-            const childX = startChildX + idx * spacing;
-            positions[childId].x = childX;
-            positions[childId].centerX = childX;
-          }
-        });
-      }
     });
 
     return positions;
