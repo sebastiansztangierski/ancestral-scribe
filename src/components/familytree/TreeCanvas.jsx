@@ -258,7 +258,7 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
 
       // Marriage point (center between spouses)
       const marriageX = (pos1.centerX + pos2.centerX) / 2;
-      const marriageY = pos1.centerY;
+      const marriageY = (pos1.centerY + pos2.centerY) / 2;
       
       // Calculate horizontal bar position and range
       const childXPositions = childPositions.map(c => c.centerX);
@@ -270,13 +270,13 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
       const childGenY = childPositions[0].y;
       const dropY = (marriageY + childGenY) / 2;
       
-      // Vertical line from marriage point down to horizontal bar level
+      // Vertical line from marriage node down to horizontal bar level
       const targetX = childPositions.length === 1 ? childPositions[0].centerX : childrenCenterX;
       connectors.push(
         <line
           key={`drop-${groupIdx}`}
           x1={marriageX}
-          y1={marriageY + 6}
+          y1={marriageY}
           x2={targetX}
           y2={dropY}
           stroke="#b45309"
