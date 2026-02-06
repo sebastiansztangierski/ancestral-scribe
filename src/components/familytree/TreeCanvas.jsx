@@ -8,6 +8,7 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [customPositions, setCustomPositions] = useState({});
   const [draggingPersonId, setDraggingPersonId] = useState(null);
+  const [draggingMarriageIdx, setDraggingMarriageIdx] = useState(null);
 
   // Build a stable position map for all persons
   const positionMap = useMemo(() => {
@@ -117,6 +118,20 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
     });
   };
 
+  // Handle marriage node drag start
+  const handleMarriageNodeMouseDown = (e, pair, idx) => {
+    e.stopPropagation();
+    setDraggingMarriageIdx(idx);
+    const pos1 = positionMap[pair.parent1];
+    const pos2 = positionMap[pair.parent2];
+    const midX = (pos1.centerX + pos2.centerX) / 2;
+    const midY = (pos1.centerY + pos2.centerY) / 2;
+    setDragStart({ 
+      x: e.clientX / transform.scale - midX, 
+      y: e.clientY / transform.scale - midY 
+    });
+  };
+
   // Handle canvas drag start
   const handleMouseDown = (e) => {
     if (e.target === containerRef.current || e.target.closest('.canvas-background')) {
@@ -127,7 +142,26 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
 
   // Handle drag
   const handleMouseMove = (e) => {
-    if (draggingPersonId) {
+    if (draggingMarriageIdx !== null) {
+      const pair = familyStructure.spousePairs[draggingMarriageIdx];
+      const pos1 = positionMap[pair.parent1];
+      const pos2 = positionMap[pair.parent2];
+      
+      const oldMidX = (pos1.centerX + pos2.centerX) / 2;
+      const oldMidY = (pos1.centerY + pos2.centerY) / 2;
+      
+      const newMidX = e.clientX / transform.scale - dragStart.x;
+      const newMidY = e.clientY / transform.scale - dragStart.y;
+      
+      const deltaX = newMidX - oldMidX;
+      const deltaY = newMidY - oldMidY;
+      
+      setCustomPositions(prev => ({
+        ...prev,
+        [pair.parent1]: { x: pos1.x + deltaX, y: pos1.y + deltaY },
+        [pair.parent2]: { x: pos2.x + deltaX, y: pos2.y + deltaY }
+      }));
+    } else if (draggingPersonId) {
       const newX = e.clientX / transform.scale - dragStart.x;
       const newY = e.clientY / transform.scale - dragStart.y;
       setCustomPositions(prev => ({
@@ -147,6 +181,7 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
   const handleMouseUp = () => {
     setIsDragging(false);
     setDraggingPersonId(null);
+    setDraggingMarriageIdx(null);
   };
 
   // Center on selected person
@@ -239,6 +274,9 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
             stroke="#fbbf24"
             strokeWidth="2"
             rx="2"
+            className="cursor-move"
+            style={{ pointerEvents: 'all', cursor: 'move' }}
+            onMouseDown={(e) => handleMarriageNodeMouseDown(e, pair, idx)}
           />
         );
       }
