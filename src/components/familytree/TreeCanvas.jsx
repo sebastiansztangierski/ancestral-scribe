@@ -43,7 +43,7 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
     // Calculate positions - group spouses together
     Object.entries(generations).sort(([a], [b]) => parseInt(a) - parseInt(b)).forEach(([gen, persons]) => {
       const genNum = parseInt(gen);
-      const spacing = 240;
+      const spacing = 200;
       const processed = new Set();
       const arranged = [];
 
@@ -69,6 +69,7 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
       // Position arranged persons
       const genWidth = arranged.length * spacing;
       const startX = -genWidth / 2 + spacing / 2;
+      const processedIds = new Set();
       
       // First pass: identify children and group by parents
       const childrenByParentPair = new Map();
