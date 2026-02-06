@@ -437,14 +437,13 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
           />
         );
       } else {
-        // Multiple children - line down to horizontal bar
-        const childrenCenterX = (minChildX + maxChildX) / 2;
+        // Multiple children - straight line down from marriage
         connectors.push(
           <line
             key={`drop-${groupIdx}`}
             x1={marriageX}
             y1={marriageY}
-            x2={childrenCenterX}
+            x2={marriageX}
             y2={dropY}
             stroke="#b45309"
             strokeWidth="3"
