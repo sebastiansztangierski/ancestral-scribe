@@ -89,8 +89,26 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
 
 
 
+    // Position single children directly under their parent pair's marriage point
+    childrenByParentPair.forEach((children, pairKey) => {
+      if (children.length === 1) {
+        const [parent1Id, parent2Id] = pairKey.split('-');
+        const pos1 = positions[parent1Id];
+        const pos2 = positions[parent2Id];
+
+        if (pos1 && pos2) {
+          const marriageCenterX = (pos1.centerX + pos2.centerX) / 2;
+          const childId = children[0];
+          if (positions[childId] && !customPositions[childId]) {
+            positions[childId].x = marriageCenterX;
+            positions[childId].centerX = marriageCenterX;
+          }
+        }
+      }
+    });
+
     return positions;
-  }, [tree.persons, tree.family_edges, customPositions]);
+    }, [tree.persons, tree.family_edges, customPositions]);
 
   // Organize persons by generation for rendering
   const generations = useMemo(() => {
