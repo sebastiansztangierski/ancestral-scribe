@@ -361,38 +361,26 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
           {renderConnectors()}
         </svg>
 
-        {/* Character nodes by generation */}
-        {Object.entries(generations).map(([gen, persons]) => {
-          const genNum = parseInt(gen);
-          const spacing = 140;
-          const genWidth = persons.length * spacing;
-          const startX = -genWidth / 2 + spacing / 2;
-
+        {/* Character nodes */}
+        {tree.persons.map((person) => {
+          const pos = positionMap[person.id];
+          if (!pos) return null;
+          
           return (
             <div
-              key={gen}
-              className="absolute flex items-center"
+              key={person.id}
+              className="absolute"
               style={{
-                top: `${genNum * 180}px`,
-                left: '50%'
+                left: `${pos.x}px`,
+                top: `${pos.y}px`,
+                transform: 'translateX(-50%)'
               }}
             >
-              {persons.map((person, idx) => (
-                <div
-                  key={person.id}
-                  className="absolute"
-                  style={{
-                    left: `${startX + idx * spacing}px`,
-                    transform: 'translateX(-50%)'
-                  }}
-                >
-                  <CharacterNode
-                    person={person}
-                    isSelected={selectedPerson?.id === person.id}
-                    onClick={onSelectPerson}
-                  />
-                </div>
-              ))}
+              <CharacterNode
+                person={person}
+                isSelected={selectedPerson?.id === person.id}
+                onClick={onSelectPerson}
+              />
             </div>
           );
         })}
