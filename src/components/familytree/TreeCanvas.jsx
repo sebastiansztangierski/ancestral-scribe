@@ -247,14 +247,17 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
         const leftPos = pos1.centerX < pos2.centerX ? pos1 : pos2;
         const rightPos = pos1.centerX < pos2.centerX ? pos2 : pos1;
         
-        // Horizontal line between spouses
+        // Bottom of portraits (96px portrait height)
+        const spouseLineY = leftPos.y + 96;
+        
+        // Horizontal line between spouses at bottom
         connectors.push(
           <line
             key={`spouse-line-${idx}`}
             x1={leftPos.centerX + 45}
-            y1={leftPos.centerY}
+            y1={spouseLineY}
             x2={rightPos.centerX - 45}
-            y2={rightPos.centerY}
+            y2={spouseLineY}
             stroke="#b45309"
             strokeWidth="3"
           />
@@ -262,12 +265,11 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
         
         // Marriage node (pink/red square like in mockup)
         const midX = (leftPos.centerX + rightPos.centerX) / 2;
-        const midY = (leftPos.centerY + rightPos.centerY) / 2;
         connectors.push(
           <rect
             key={`spouse-node-${idx}`}
             x={midX - 6}
-            y={midY - 6}
+            y={spouseLineY - 6}
             width="12"
             height="12"
             fill="#dc2626"
@@ -294,9 +296,9 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
       
       if (childPositions.length === 0) return;
 
-      // Marriage point (center between spouses)
+      // Marriage point (at bottom of portraits)
       const marriageX = (pos1.centerX + pos2.centerX) / 2;
-      const marriageY = (pos1.centerY + pos2.centerY) / 2;
+      const marriageY = pos1.y + 96;
       
       // Calculate horizontal bar position and range
       const childXPositions = childPositions.map(c => c.centerX);
