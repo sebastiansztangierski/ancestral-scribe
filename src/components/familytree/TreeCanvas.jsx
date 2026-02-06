@@ -114,11 +114,11 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
       
       const singleChildPositions = childPositionMap;
       
-      // Second pass: apply positions
+      // Third pass: apply positions to arranged persons
       arranged.forEach((person, index) => {
         const y = genNum * 180;
         
-        // Check if this person has special positioning
+        // Check if this person has special positioning (grouped under parents)
         let x;
         if (singleChildPositions.has(person.id)) {
           x = singleChildPositions.get(person.id);
