@@ -15,7 +15,7 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
   const positionMap = useMemo(() => {
     const positions = {};
     const generations = {};
-    
+
     // Group by generation
     tree.persons.forEach(person => {
       if (!generations[person.generation]) {
@@ -31,20 +31,29 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
       spousePairs.set(edge.to_id, edge.from_id);
     });
 
+    // Build parent-child map
+    const childrenByParent = new Map();
+    tree.family_edges.filter(e => e.relation_type === 'parent_child').forEach(edge => {
+      if (!childrenByParent.has(edge.from_id)) {
+        childrenByParent.set(edge.from_id, []);
+      }
+      childrenByParent.get(edge.from_id).push(edge.to_id);
+    });
+
     // Calculate positions - group spouses together
     Object.entries(generations).forEach(([gen, persons]) => {
       const genNum = parseInt(gen);
       const spacing = 200;
       const processed = new Set();
       const arranged = [];
-      
+
       // Arrange persons, grouping spouses together
       persons.forEach(person => {
         if (processed.has(person.id)) return;
-        
+
         const spouseId = spousePairs.get(person.id);
         const spouse = spouseId ? persons.find(p => p.id === spouseId) : null;
-        
+
         if (spouse && !processed.has(spouse.id)) {
           // Add couple together
           arranged.push(person, spouse);
@@ -56,20 +65,46 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
           processed.add(person.id);
         }
       });
-      
+
       // Position arranged persons
       const genWidth = arranged.length * spacing;
       const startX = -genWidth / 2 + spacing / 2;
-      
+
       arranged.forEach((person, index) => {
-        const defaultX = startX + index * spacing;
+        let defaultX = startX + index * spacing;
         const defaultY = genNum * 180;
-        
+
+        // Check if this is a single child - if so, center under parents
+        if (genNum > 0) {
+          const parents = tree.family_edges
+            .filter(e => e.relation_type === 'parent_child' && e.to_id === person.id)
+            .map(e => e.from_id);
+
+          if (parents.length === 2) {
+            const parent1Id = parents[0];
+            const parent2Id = parents[1];
+
+            // Check if this person is the only child of these parents
+            const siblingsCount = tree.family_edges
+              .filter(e => e.relation_type === 'parent_child' && 
+                (e.from_id === parent1Id || e.from_id === parent2Id))
+              .filter((e, i, arr) => arr.findIndex(edge => edge.to_id === e.to_id) === i)
+              .length;
+
+            if (siblingsCount === 1 && positions[parent1Id] && positions[parent2Id]) {
+              // Single child - center between parents
+              const marriageKey = `${parent1Id}-${parent2Id}`;
+              const customMarriagePos = marriageNodePositions[marriageKey];
+              defaultX = customMarriagePos?.x ?? (positions[parent1Id].centerX + positions[parent2Id].centerX) / 2;
+            }
+          }
+        }
+
         // Use custom position if available, otherwise use calculated position
         const customPos = customPositions[person.id];
         const x = customPos ? customPos.x : defaultX;
         const y = customPos ? customPos.y : defaultY;
-        
+
         positions[person.id] = {
           x,
           y,
@@ -80,7 +115,7 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
     });
 
     return positions;
-  }, [tree.persons, tree.family_edges, customPositions]);
+  }, [tree.persons, tree.family_edges, customPositions, marriageNodePositions]);
 
   // Organize persons by generation for rendering
   const generations = useMemo(() => {
