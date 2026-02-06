@@ -573,7 +573,9 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
               style={{
                 left: `${pos.x}px`,
                 top: `${pos.y}px`,
-                transform: 'translateX(-50%)'
+                transform: 'translateX(-50%)',
+                marginLeft: '60px',
+                marginRight: '60px'
               }}
               onMouseDown={(e) => handlePortraitMouseDown(e, person.id)}
             >
