@@ -31,19 +31,27 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
       spousePairs.set(edge.to_id, edge.from_id);
     });
 
-    // Build parent-child map
-    const childrenByParent = new Map();
+    // Build parent-child relationships map
+    const childrenByParentPair = new Map();
     tree.family_edges.filter(e => e.relation_type === 'parent_child').forEach(edge => {
-      if (!childrenByParent.has(edge.from_id)) {
-        childrenByParent.set(edge.from_id, []);
+      const childId = edge.to_id;
+      const parentId = edge.from_id;
+      
+      // Find spouse of this parent
+      const spouseId = spousePairs.get(parentId);
+      if (spouseId) {
+        const pairKey = [parentId, spouseId].sort().join('-');
+        if (!childrenByParentPair.has(pairKey)) {
+          childrenByParentPair.set(pairKey, []);
+        }
+        childrenByParentPair.get(pairKey).push(childId);
       }
-      childrenByParent.get(edge.from_id).push(edge.to_id);
     });
 
-    // Calculate positions - group spouses together
-     Object.entries(generations).sort(([a], [b]) => parseInt(a) - parseInt(b)).forEach(([gen, persons]) => {
-       const genNum = parseInt(gen);
-       const spacing = 280; // spacing between individuals (needs room for portraits + margins)
+    // First pass: position all persons normally
+    Object.entries(generations).sort(([a], [b]) => parseInt(a) - parseInt(b)).forEach(([gen, persons]) => {
+      const genNum = parseInt(gen);
+      const spacing = 280;
       const processed = new Set();
       const arranged = [];
 
@@ -55,93 +63,57 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
         const spouse = spouseId ? persons.find(p => p.id === spouseId) : null;
 
         if (spouse && !processed.has(spouse.id)) {
-          // Add couple together
           arranged.push(person, spouse);
           processed.add(person.id);
           processed.add(spouse.id);
         } else if (!processed.has(person.id)) {
-          // Add single person
           arranged.push(person);
           processed.add(person.id);
         }
       });
 
-      // Position arranged persons
       const genWidth = arranged.length * spacing;
       const startX = -genWidth / 2 + spacing / 2;
-      const processedIds = new Set();
-      
-      // First pass: identify children and group by parents
-      const childrenByParentPair = new Map();
-      arranged.forEach((person) => {
-        const parents = tree.family_edges
-          .filter(e => e.relation_type === 'parent_child' && e.to_id === person.id)
-          .map(e => e.from_id);
+      const y = genNum * 250;
 
-        if (parents.length === 2 && genNum > 0) {
-          const parentKey = parents.sort().join('-');
-          if (!childrenByParentPair.has(parentKey)) {
-            childrenByParentPair.set(parentKey, {
-              parents: parents,
-              children: []
-            });
-          }
-          childrenByParentPair.get(parentKey).children.push(person.id);
-        }
-      });
-
-      // Second pass: calculate positions for children grouped by parents
-      const childPositionMap = new Map();
-      childrenByParentPair.forEach(({ parents, children }) => {
-        const parent1Id = parents[0];
-        const parent2Id = parents[1];
-        
-        if (positions[parent1Id] && positions[parent2Id]) {
-          const marriageKey = [parent1Id, parent2Id].sort().join('-');
-          const customMarriagePos = marriageNodePositions[marriageKey];
-          const parentsCenterX = customMarriagePos?.x ?? (positions[parent1Id].centerX + positions[parent2Id].centerX) / 2;
-          
-          // Center children group under parent marriage node
-          const childrenWidth = children.length * spacing;
-          const startChildX = parentsCenterX - childrenWidth / 2 + spacing / 2;
-          
-          children.forEach((childId, idx) => {
-            const childX = startChildX + idx * spacing;
-            childPositionMap.set(childId, childX);
-          });
-        }
-      });
-      
-      const singleChildPositions = childPositionMap;
-      
-      // Third pass: apply positions to arranged persons
       arranged.forEach((person, index) => {
-        const y = genNum * 250;
-        
-        // Check if this person has special positioning (grouped under parents)
-        let x;
-        if (singleChildPositions.has(person.id)) {
-          x = singleChildPositions.get(person.id);
-        } else {
-          x = startX + index * spacing;
-        }
-        
-        // Use custom position if available, otherwise use calculated position
         const customPos = customPositions[person.id];
-        const finalX = customPos?.x ?? x;
+        const x = customPos?.x ?? (startX + index * spacing);
         const finalY = customPos?.y ?? y;
 
         positions[person.id] = {
-          x: finalX,
+          x: x,
           y: finalY,
-          centerX: finalX,
+          centerX: x,
           centerY: finalY + 48
         };
       });
     });
 
+    // Second pass: adjust children positions to center under parents
+    childrenByParentPair.forEach((children, pairKey) => {
+      const [parent1Id, parent2Id] = pairKey.split('-');
+      const pos1 = positions[parent1Id];
+      const pos2 = positions[parent2Id];
+
+      if (pos1 && pos2 && children.length > 0) {
+        const spacing = 280;
+        const parentsCenterX = (pos1.centerX + pos2.centerX) / 2;
+        const childrenWidth = children.length * spacing;
+        const startChildX = parentsCenterX - childrenWidth / 2 + spacing / 2;
+
+        children.forEach((childId, idx) => {
+          if (positions[childId] && !customPositions[childId]) {
+            const childX = startChildX + idx * spacing;
+            positions[childId].x = childX;
+            positions[childId].centerX = childX;
+          }
+        });
+      }
+    });
+
     return positions;
-  }, [tree.persons, tree.family_edges, customPositions, marriageNodePositions]);
+  }, [tree.persons, tree.family_edges, customPositions]);
 
   // Organize persons by generation for rendering
   const generations = useMemo(() => {
