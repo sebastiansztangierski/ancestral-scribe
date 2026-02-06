@@ -71,8 +71,8 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
       const startX = -genWidth / 2 + spacing / 2;
       const processedIds = new Set();
       
-      // First pass: group children by parent pairs and calculate positioning
-      const childrenByParentPair = new Map();
+      // First pass: identify single children and their positioning
+      const singleChildPositions = new Map();
       arranged.forEach((person) => {
         const parents = tree.family_edges
           .filter(e => e.relation_type === 'parent_child' && e.to_id === person.id)
@@ -81,89 +81,43 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
         if (parents.length === 2 && genNum > 0) {
           const parent1Id = parents[0];
           const parent2Id = parents[1];
-          const pairKey = [parent1Id, parent2Id].sort().join('-');
-          
-          if (!childrenByParentPair.has(pairKey)) {
-            childrenByParentPair.set(pairKey, {
-              parent1Id,
-              parent2Id,
-              children: []
-            });
+
+          // Check if this person is the only child of these parents
+          const siblingsFromParent1 = tree.family_edges
+            .filter(e => e.relation_type === 'parent_child' && e.from_id === parent1Id)
+            .map(e => e.to_id);
+          const siblingsFromParent2 = tree.family_edges
+            .filter(e => e.relation_type === 'parent_child' && e.from_id === parent2Id)
+            .map(e => e.to_id);
+          const commonChildren = siblingsFromParent1.filter(id => siblingsFromParent2.includes(id));
+
+          if (commonChildren.length === 1 && positions[parent1Id] && positions[parent2Id]) {
+            // Single child - calculate marriage node center
+            const marriageKey = `${parent1Id}-${parent2Id}`;
+            const reverseMarriageKey = `${parent2Id}-${parent1Id}`;
+            const customMarriagePos = marriageNodePositions[marriageKey] || marriageNodePositions[reverseMarriageKey];
+            const parentsCenterX = customMarriagePos?.x ?? (positions[parent1Id].centerX + positions[parent2Id].centerX) / 2;
+
+            // Single child is centered directly under marriage node
+            singleChildPositions.set(person.id, parentsCenterX);
+            
+            // If they have a spouse, position spouse next to them
+            const spouseId = spousePairs.get(person.id);
+            if (spouseId) {
+              singleChildPositions.set(spouseId, parentsCenterX + spacing);
+            }
           }
-          childrenByParentPair.get(pairKey).children.push(person.id);
         }
-      });
-      
-      // Calculate positions for children groups
-      const specialPositions = new Map();
-      const processedChildren = new Set();
-      
-      childrenByParentPair.forEach(({ parent1Id, parent2Id, children }) => {
-        if (!positions[parent1Id] || !positions[parent2Id]) return;
-        
-        // Get all children in this generation that belong to this parent pair
-        const childrenInGen = children.filter(childId => 
-          arranged.find(p => p.id === childId)
-        );
-        
-        if (childrenInGen.length === 0) return;
-        
-        // Calculate marriage node center
-        const marriageKey = `${parent1Id}-${parent2Id}`;
-        const reverseMarriageKey = `${parent2Id}-${parent1Id}`;
-        const customMarriagePos = marriageNodePositions[marriageKey] || marriageNodePositions[reverseMarriageKey];
-        const parentsCenterX = customMarriagePos?.x ?? (positions[parent1Id].centerX + positions[parent2Id].centerX) / 2;
-        
-        // Build list of child-spouse pairs (avoiding duplicates)
-        const childSlots = [];
-        childrenInGen.forEach(childId => {
-          if (processedChildren.has(childId)) return;
-          
-          const spouseId = spousePairs.get(childId);
-          
-          // If spouse is also in childrenInGen, they're both children - treat as siblings with spouses
-          if (spouseId && childrenInGen.includes(spouseId)) {
-            childSlots.push({ childId, spouseId: null, slots: 1 });
-            processedChildren.add(childId);
-          } else if (spouseId && arranged.find(p => p.id === spouseId)) {
-            // Has spouse not in childrenInGen
-            childSlots.push({ childId, spouseId, slots: 2 });
-            processedChildren.add(childId);
-            processedChildren.add(spouseId);
-          } else {
-            // Single person
-            childSlots.push({ childId, spouseId: null, slots: 1 });
-            processedChildren.add(childId);
-          }
-        });
-        
-        // Calculate total width and starting position
-        const totalSlots = childSlots.reduce((sum, slot) => sum + slot.slots, 0);
-        const groupWidth = (totalSlots - 1) * spacing;
-        const startX = parentsCenterX - groupWidth / 2;
-        
-        // Assign positions
-        let currentX = startX;
-        childSlots.forEach(slot => {
-          specialPositions.set(slot.childId, currentX);
-          
-          if (slot.spouseId) {
-            specialPositions.set(slot.spouseId, currentX + spacing);
-            currentX += 2 * spacing;
-          } else {
-            currentX += spacing;
-          }
-        });
       });
       
       // Second pass: apply positions
       arranged.forEach((person, index) => {
         const y = genNum * 180;
         
-        // Check if this person has special positioning (centered under parents)
+        // Check if this person has special positioning
         let x;
-        if (specialPositions.has(person.id)) {
-          x = specialPositions.get(person.id);
+        if (singleChildPositions.has(person.id)) {
+          x = singleChildPositions.get(person.id);
         } else {
           x = startX + index * spacing;
         }
