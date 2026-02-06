@@ -78,10 +78,10 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
 
       // Second pass: adjust for single children centered under parents
       if (genNum > 0) {
-        const processedIndices = new Set();
+        const processedPersonIds = new Set();
         
         arranged.forEach((person, index) => {
-          if (processedIndices.has(index)) return;
+          if (processedPersonIds.has(person.id)) return;
           
           const parents = tree.family_edges
             .filter(e => e.relation_type === 'parent_child' && e.to_id === person.id)
@@ -112,16 +112,16 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
               const spouseId = spousePairs.get(person.id);
               const spouseIndex = spouseId ? arranged.findIndex(p => p.id === spouseId) : -1;
 
-              if (spouseIndex > -1 && !processedIndices.has(spouseIndex)) {
+              if (spouseIndex > -1) {
                 // Position couple centered under parents
                 defaultPositions[index] = parentsCenterX - spacing / 2;
                 defaultPositions[spouseIndex] = parentsCenterX + spacing / 2;
-                processedIndices.add(index);
-                processedIndices.add(spouseIndex);
-              } else if (spouseIndex === -1) {
+                processedPersonIds.add(person.id);
+                processedPersonIds.add(spouseId);
+              } else {
                 // Single person without spouse, center them
                 defaultPositions[index] = parentsCenterX;
-                processedIndices.add(index);
+                processedPersonIds.add(person.id);
               }
             }
           }
