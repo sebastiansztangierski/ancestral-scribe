@@ -67,7 +67,7 @@ export const generateFamilyTree = (config) => {
     const nextGenCouples = [];
 
     for (const couple of currentGenCouples) {
-      // Random number of children based on avgChildren
+      // Random number of children based on avgChildren (at least 1)
       const numChildren = Math.max(1, Math.floor(Math.random() * (avgChildren * 2)) + 1);
 
       for (let c = 0; c < numChildren; c++) {
@@ -78,8 +78,8 @@ export const generateFamilyTree = (config) => {
         familyEdges.push({ from_id: couple.parent1.id, to_id: child.id, relation_type: 'parent_child' });
         familyEdges.push({ from_id: couple.parent2.id, to_id: child.id, relation_type: 'parent_child' });
 
-        // Some children get spouses (not all, and not in last generation)
-        if (gen < generations - 1 && Math.random() > 0.3) {
+        // Children who will have descendants need spouses
+        if (gen < generations - 1) {
           const spouse = createPerson(gen, null, usedPortraits, unknownChance, child.gender === 'male' ? 'female' : 'male');
           persons.push(spouse);
           familyEdges.push({ from_id: child.id, to_id: spouse.id, relation_type: 'spouse' });
