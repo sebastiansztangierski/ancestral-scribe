@@ -20,25 +20,71 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
       generations[person.generation].push(person);
     });
 
-    // Calculate positions
+    // Find all spouse pairs to group them together
+    const spousePairs = new Map();
+    tree.family_edges.filter(e => e.relation_type === 'spouse').forEach(edge => {
+      spousePairs.set(edge.from_id, edge.to_id);
+      spousePairs.set(edge.to_id, edge.from_id);
+    });
+
+    // Calculate positions - group spouses together
     Object.entries(generations).forEach(([gen, persons]) => {
       const genNum = parseInt(gen);
       const spacing = 140;
-      const genWidth = persons.length * spacing;
-      const startX = -genWidth / 2 + spacing / 2;
+      const processed = new Set();
+      let xIndex = 0;
       
-      persons.forEach((person, index) => {
-        positions[person.id] = {
-          x: startX + index * spacing,
-          y: genNum * 180,
-          centerX: startX + index * spacing,
-          centerY: genNum * 180 + 48 // center of portrait
-        };
+      // Arrange persons, grouping spouses
+      persons.forEach(person => {
+        if (processed.has(person.id)) return;
+        
+        const spouseId = spousePairs.get(person.id);
+        const spouse = spouseId ? persons.find(p => p.id === spouseId) : null;
+        
+        if (spouse && !processed.has(spouse.id)) {
+          // Position couple together
+          const coupleStartX = xIndex * spacing;
+          positions[person.id] = {
+            x: coupleStartX,
+            y: genNum * 180,
+            centerX: coupleStartX,
+            centerY: genNum * 180 + 48
+          };
+          positions[spouse.id] = {
+            x: coupleStartX + spacing,
+            y: genNum * 180,
+            centerX: coupleStartX + spacing,
+            centerY: genNum * 180 + 48
+          };
+          processed.add(person.id);
+          processed.add(spouse.id);
+          xIndex += 2;
+        } else if (!processed.has(person.id)) {
+          // Position single person
+          positions[person.id] = {
+            x: xIndex * spacing,
+            y: genNum * 180,
+            centerX: xIndex * spacing,
+            centerY: genNum * 180 + 48
+          };
+          processed.add(person.id);
+          xIndex += 1;
+        }
+      });
+      
+      // Center the generation
+      const genWidth = xIndex * spacing;
+      const offset = -genWidth / 2 + spacing / 2;
+      persons.forEach(person => {
+        if (positions[person.id]) {
+          positions[person.id].x += offset;
+          positions[person.id].centerX += offset;
+        }
       });
     });
 
     return positions;
-  }, [tree.persons]);
+  }, [tree.persons, tree.family_edges]);
 
   // Organize persons by generation for rendering
   const generations = useMemo(() => {
