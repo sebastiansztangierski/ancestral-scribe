@@ -358,48 +358,49 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
       const marriageX = customMarriagePos?.x ?? (pos1.centerX + pos2.centerX) / 2;
       const marriageY = customMarriagePos?.y ?? Math.max(pos1.y, pos2.y) + 96;
       
-      // Sort children by x position for horizontal bar
-      const sortedByX = [...childPositions].sort((a, b) => a.centerX - b.centerX);
-      const firstChildX = sortedByX[0].centerX;
-      const lastChildX = sortedByX[sortedByX.length - 1].centerX;
+      // Get all child X positions and Y positions
+      const childXs = childPositions.map(c => c.centerX);
+      const childYs = childPositions.map(c => c.y);
+      const leftMostChildX = Math.min(...childXs);
+      const rightMostChildX = Math.max(...childXs);
+      const topMostChildY = Math.min(...childYs);
       
-      // Find the highest (minimum Y) child to position the horizontal bar
-      const minChildY = Math.min(...childPositions.map(c => c.y));
-      const dropY = minChildY - 30;
+      // Horizontal bar is 30px above the topmost child
+      const horizontalBarY = topMostChildY - 30;
       
-      // Straight line down from marriage point to horizontal bar
+      // Draw vertical line from marriage node down to horizontal bar
       connectors.push(
         <line
-          key={`drop-${groupIdx}`}
+          key={`parent-drop-${groupIdx}`}
           x1={marriageX}
           y1={marriageY}
           x2={marriageX}
-          y2={dropY}
+          y2={horizontalBarY}
           stroke="#b45309"
           strokeWidth="3"
         />
       );
 
-      // Horizontal bar across children
+      // Draw horizontal bar connecting all children
       connectors.push(
         <line
-          key={`hbar-${groupIdx}`}
-          x1={firstChildX}
-          y1={dropY}
-          x2={lastChildX}
-          y2={dropY}
+          key={`children-bar-${groupIdx}`}
+          x1={leftMostChildX}
+          y1={horizontalBarY}
+          x2={rightMostChildX}
+          y2={horizontalBarY}
           stroke="#b45309"
           strokeWidth="3"
         />
       );
 
-      // Vertical lines down to each child
+      // Draw vertical lines from horizontal bar down to each child
       childPositions.forEach((childPos, childIdx) => {
         connectors.push(
           <line
-            key={`child-drop-${groupIdx}-${childIdx}`}
+            key={`child-connector-${groupIdx}-${childIdx}`}
             x1={childPos.centerX}
-            y1={dropY}
+            y1={horizontalBarY}
             x2={childPos.centerX}
             y2={childPos.y}
             stroke="#b45309"
