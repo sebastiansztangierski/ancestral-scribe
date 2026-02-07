@@ -358,13 +358,14 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
       const marriageX = customMarriagePos?.x ?? (pos1.centerX + pos2.centerX) / 2;
       const marriageY = customMarriagePos?.y ?? Math.max(pos1.y, pos2.y) + 96;
       
-      // Sort children by x position
-      childPositions.sort((a, b) => a.centerX - b.centerX);
+      // Sort children by x position for horizontal bar
+      const sortedByX = [...childPositions].sort((a, b) => a.centerX - b.centerX);
+      const firstChildX = sortedByX[0].centerX;
+      const lastChildX = sortedByX[sortedByX.length - 1].centerX;
       
-      const firstChildX = childPositions[0].centerX;
-      const lastChildX = childPositions[childPositions.length - 1].centerX;
-      const childrenY = childPositions[0].y;
-      const dropY = childrenY - 30;
+      // Find the highest (minimum Y) child to position the horizontal bar
+      const minChildY = Math.min(...childPositions.map(c => c.y));
+      const dropY = minChildY - 30;
       
       // Straight line down from marriage point to horizontal bar
       connectors.push(
