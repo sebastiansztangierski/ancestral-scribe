@@ -362,10 +362,10 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
       const childXPositions = childPositions.map(c => c.centerX);
       const minChildX = Math.min(...childXPositions);
       const maxChildX = Math.max(...childXPositions);
+      const minChildY = Math.min(...childPositions.map(c => c.y));
 
       // Horizontal bar positioned between parents and children
-      const childGenY = childPositions[0].y;
-      const dropY = childGenY - 30;
+      const dropY = minChildY - 30;
       
       // Straight line down from marriage point
       connectors.push(
