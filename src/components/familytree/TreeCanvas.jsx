@@ -381,14 +381,12 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
       );
 
       // Horizontal bar across all children
-      const firstChildX = childPositions[0].centerX;
-      const lastChildX = childPositions[childPositions.length - 1].centerX;
       connectors.push(
         <line
           key={`hbar-${groupIdx}`}
-          x1={firstChildX}
+          x1={minChildX}
           y1={dropY}
-          x2={lastChildX}
+          x2={maxChildX}
           y2={dropY}
           stroke="#b45309"
           strokeWidth="3"
