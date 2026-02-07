@@ -402,7 +402,7 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
             x1={childPos.centerX}
             y1={horizontalBarY}
             x2={childPos.centerX}
-            y2={childPos.y}
+            y2={childPos.topY || childPos.y}
             stroke="#b45309"
             strokeWidth="3"
           />
