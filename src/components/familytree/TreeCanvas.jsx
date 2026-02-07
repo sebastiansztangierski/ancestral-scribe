@@ -82,7 +82,8 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
           x: finalX,
           y: finalY,
           centerX: finalX,
-          centerY: finalY + 48
+          centerY: finalY + 48,
+          topY: finalY
         };
       });
     });
