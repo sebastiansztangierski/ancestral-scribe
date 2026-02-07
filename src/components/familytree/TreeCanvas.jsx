@@ -359,15 +359,14 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
       const marriageX = customMarriagePos?.x ?? (pos1.centerX + pos2.centerX) / 2;
       const marriageY = customMarriagePos?.y ?? Math.max(pos1.y, pos2.y) + 96;
       
-      // Get all child X positions and Y positions
+      // Get the range of child positions
       const childXs = childPositions.map(c => c.centerX);
-      const childYs = childPositions.map(c => c.y);
       const leftMostChildX = Math.min(...childXs);
       const rightMostChildX = Math.max(...childXs);
-      const topMostChildY = Math.min(...childYs);
       
-      // Horizontal bar is 30px above the topmost child
-      const horizontalBarY = topMostChildY - 30;
+      // All children in same generation should have same topY
+      const childrenTopY = childPositions[0].topY || childPositions[0].y;
+      const horizontalBarY = childrenTopY - 30;
       
       // Draw vertical line from marriage node down to horizontal bar
       connectors.push(
