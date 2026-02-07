@@ -364,25 +364,12 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
       const leftMostChildX = Math.min(...childXs);
       const rightMostChildX = Math.max(...childXs);
       
-      // Calculate horizontal bar position accounting for any marriage nodes above children
-      const childrenTopY = childPositions[0].topY || childPositions[0].y;
-      let horizontalBarY = childrenTopY - 30;
+      // Find the topmost Y coordinate among all children (should be same for same generation)
+      const childrenTopYs = childPositions.map(c => c.topY || c.y);
+      const topMostChildY = Math.min(...childrenTopYs);
       
-      // Check if any children have marriage nodes above them
-      childArray.forEach(childId => {
-        const childMarriageKey = Object.keys(marriageNodePositions).find(key => 
-          key.includes(childId)
-        );
-        if (childMarriageKey) {
-          const childMarriagePos = marriageNodePositions[childMarriageKey];
-          if (childMarriagePos) {
-            // Place bar above the marriage node (marriage nodes are at y + 96)
-            const childPos = positionMap[childId];
-            const estimatedMarriageY = childMarriagePos.y;
-            horizontalBarY = Math.min(horizontalBarY, estimatedMarriageY - 30);
-          }
-        }
-      });
+      // Place horizontal bar 30px above the topmost child
+      const horizontalBarY = topMostChildY - 30;
       
       // Draw vertical line from marriage node down to horizontal bar
       connectors.push(
