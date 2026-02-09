@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { tree as d3Tree, hierarchy } from 'd3-hierarchy';
 import CharacterNode from './CharacterNode';
 
 export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
@@ -6,110 +7,65 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
   const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  const [customPositions, setCustomPositions] = useState({});
-  const [marriageNodePositions, setMarriageNodePositions] = useState({});
-  const [draggingPersonId, setDraggingPersonId] = useState(null);
-  const [draggingMarriageIdx, setDraggingMarriageIdx] = useState(null);
 
-  // Build a stable position map for all persons
-  const positionMap = useMemo(() => {
-    const positions = {};
-    const generations = {};
+  // Build hierarchical tree structure from family data
+  const treeLayout = useMemo(() => {
+    if (!tree || !tree.persons || tree.persons.length === 0) return null;
 
-    // Group by generation
-    tree.persons.forEach(person => {
-      if (!generations[person.generation]) {
-        generations[person.generation] = [];
-      }
-      generations[person.generation].push(person);
-    });
+    // Find the root person (generation 0)
+    const rootPerson = tree.persons.find(p => p.generation === 0);
+    if (!rootPerson) return null;
 
-    // Build spouse pair map
-    const spousePairs = new Map();
-    tree.family_edges.filter(e => e.relation_type === 'spouse').forEach(edge => {
-      spousePairs.set(edge.from_id, edge.to_id);
-      spousePairs.set(edge.to_id, edge.from_id);
-    });
-
-    // Build parent-child relationships
-    const childrenByParentPair = new Map();
-    tree.family_edges.filter(e => e.relation_type === 'parent_child').forEach(edge => {
-      const parentId = edge.from_id;
-      const childId = edge.to_id;
-      const spouseId = spousePairs.get(parentId);
-      if (spouseId) {
-        const pairKey = [parentId, spouseId].sort().join('-');
-        if (!childrenByParentPair.has(pairKey)) {
-          childrenByParentPair.set(pairKey, []);
+    // Build parent-child map
+    const childrenMap = new Map();
+    tree.family_edges
+      .filter(e => e.relation_type === 'parent_child')
+      .forEach(edge => {
+        if (!childrenMap.has(edge.from_id)) {
+          childrenMap.set(edge.from_id, []);
         }
-        childrenByParentPair.get(pairKey).push(childId);
-      }
-    });
-
-    // Position all generations
-    Object.entries(generations).sort(([a], [b]) => parseInt(a) - parseInt(b)).forEach(([gen, persons]) => {
-      const genNum = parseInt(gen);
-      const spacing = 320;
-      const y = genNum * 250;
-      
-      const processed = new Set();
-      const arranged = [];
-      
-      persons.forEach(person => {
-        if (processed.has(person.id)) return;
-        const spouseId = spousePairs.get(person.id);
-        const spouse = spouseId ? persons.find(p => p.id === spouseId) : null;
-
-        if (spouse && !processed.has(spouse.id)) {
-          arranged.push(person, spouse);
-          processed.add(person.id);
-          processed.add(spouse.id);
-        } else if (!processed.has(person.id)) {
-          arranged.push(person);
-          processed.add(person.id);
-        }
+        childrenMap.get(edge.from_id).push(edge.to_id);
       });
 
-      const totalWidth = arranged.length * spacing;
-      const startX = -totalWidth / 2 + spacing / 2;
-
-      arranged.forEach((person, index) => {
-        const customPos = customPositions[person.id];
-        const finalX = customPos?.x ?? (startX + index * spacing);
-        const finalY = customPos?.y ?? y;
-
-        positions[person.id] = {
-          x: finalX,
-          y: finalY,
-          centerX: finalX,
-          centerY: finalY + 48,
-          topY: finalY
-        };
+    // Build spouse map
+    const spouseMap = new Map();
+    tree.family_edges
+      .filter(e => e.relation_type === 'spouse')
+      .forEach(edge => {
+        spouseMap.set(edge.from_id, edge.to_id);
+        spouseMap.set(edge.to_id, edge.from_id);
       });
-    });
 
+    // Recursive function to build hierarchy
+    function buildNode(personId) {
+      const person = tree.persons.find(p => p.id === personId);
+      if (!person) return null;
 
+      const spouseId = spouseMap.get(personId);
+      const spouse = spouseId ? tree.persons.find(p => p.id === spouseId) : null;
 
+      const children = childrenMap.get(personId) || [];
+      const childNodes = children.map(childId => buildNode(childId)).filter(Boolean);
 
+      return {
+        id: personId,
+        person,
+        spouse,
+        children: childNodes
+      };
+    }
 
-    return positions;
-    }, [tree.persons, tree.family_edges, customPositions]);
+    const root = hierarchy(buildNode(rootPerson.id));
+    
+    // Configure tree layout
+    const layout = d3Tree()
+      .size([2000, 1500])
+      .separation((a, b) => (a.parent === b.parent ? 1 : 1.2));
 
-  // Organize persons by generation for rendering
-  const generations = useMemo(() => {
-    const gens = {};
-    tree.persons.forEach(person => {
-      if (!gens[person.generation]) {
-        gens[person.generation] = [];
-      }
-      gens[person.generation].push(person);
-    });
-    return gens;
-  }, [tree.persons]);
+    layout(root);
 
-  const getPersonPosition = useCallback((personId) => {
-    return positionMap[personId] || null;
-  }, [positionMap]);
+    return { root, spouseMap };
+  }, [tree]);
 
   // Handle mouse wheel zoom
   const handleWheel = (e) => {
@@ -121,34 +77,7 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
     }));
   };
 
-  // Handle portrait drag start
-  const handlePortraitMouseDown = (e, personId) => {
-    e.stopPropagation();
-    setDraggingPersonId(personId);
-    const pos = positionMap[personId];
-    setDragStart({ 
-      x: e.clientX / transform.scale - pos.x, 
-      y: e.clientY / transform.scale - pos.y 
-    });
-  };
-
-  // Handle marriage node drag start
-  const handleMarriageNodeMouseDown = (e, pair, idx) => {
-    e.stopPropagation();
-    setDraggingMarriageIdx(idx);
-    const pos1 = positionMap[pair.parent1];
-    const pos2 = positionMap[pair.parent2];
-    const marriageKey = [pair.parent1, pair.parent2].sort().join('-');
-    const currentMarriagePos = marriageNodePositions[marriageKey];
-    const midX = currentMarriagePos?.x ?? (pos1.centerX + pos2.centerX) / 2;
-    const midY = currentMarriagePos?.y ?? Math.max(pos1.y, pos2.y) + 96;
-    setDragStart({ 
-      x: e.clientX / transform.scale - midX, 
-      y: e.clientY / transform.scale - midY 
-    });
-  };
-
-  // Handle canvas drag start
+  // Handle canvas drag
   const handleMouseDown = (e) => {
     if (e.target === containerRef.current || e.target.closest('.canvas-background')) {
       setIsDragging(true);
@@ -156,42 +85,8 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
     }
   };
 
-  // Handle drag
   const handleMouseMove = (e) => {
-    if (draggingMarriageIdx !== null) {
-      const pair = familyStructure.spousePairs[draggingMarriageIdx];
-      const marriageKey = [pair.parent1, pair.parent2].sort().join('-');
-      const pos1 = positionMap[pair.parent1];
-      const pos2 = positionMap[pair.parent2];
-      
-      const currentMarriagePos = marriageNodePositions[marriageKey];
-      const oldMarriageX = currentMarriagePos?.x ?? (pos1.centerX + pos2.centerX) / 2;
-      const oldMarriageY = currentMarriagePos?.y ?? Math.max(pos1.y, pos2.y) + 96;
-      
-      const newX = e.clientX / transform.scale - dragStart.x;
-      const newY = e.clientY / transform.scale - dragStart.y;
-      
-      const deltaX = newX - oldMarriageX;
-      const deltaY = newY - oldMarriageY;
-      
-      setMarriageNodePositions(prev => ({
-        ...prev,
-        [marriageKey]: { x: newX, y: newY }
-      }));
-      
-      setCustomPositions(prev => ({
-        ...prev,
-        [pair.parent1]: { x: pos1.x + deltaX, y: pos1.y + deltaY },
-        [pair.parent2]: { x: pos2.x + deltaX, y: pos2.y + deltaY }
-      }));
-    } else if (draggingPersonId) {
-      const newX = e.clientX / transform.scale - dragStart.x;
-      const newY = e.clientY / transform.scale - dragStart.y;
-      setCustomPositions(prev => ({
-        ...prev,
-        [draggingPersonId]: { x: newX, y: newY }
-      }));
-    } else if (isDragging) {
+    if (isDragging) {
       setTransform(prev => ({
         ...prev,
         x: e.clientX - dragStart.x,
@@ -200,285 +95,121 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
     }
   };
 
-  // Handle drag end
   const handleMouseUp = () => {
     setIsDragging(false);
-    setDraggingPersonId(null);
-    setDraggingMarriageIdx(null);
   };
-
-  // Initialize marriage node positions when tree loads
-  useEffect(() => {
-    const initialPositions = {};
-    familyStructure.spousePairs.forEach((pair) => {
-      const marriageKey = [pair.parent1, pair.parent2].sort().join('-');
-      if (!marriageNodePositions[marriageKey]) {
-        const pos1 = positionMap[pair.parent1];
-        const pos2 = positionMap[pair.parent2];
-        if (pos1 && pos2) {
-          initialPositions[marriageKey] = {
-            x: (pos1.centerX + pos2.centerX) / 2,
-            y: Math.max(pos1.y, pos2.y) + 96
-          };
-        }
-      }
-    });
-    if (Object.keys(initialPositions).length > 0) {
-      setMarriageNodePositions(prev => ({ ...prev, ...initialPositions }));
-    }
-  }, [tree.persons, tree.family_edges]);
 
   // Center on selected person
   useEffect(() => {
-    if (selectedPerson && containerRef.current) {
-      const pos = getPersonPosition(selectedPerson.id);
-      if (pos) {
+    if (selectedPerson && containerRef.current && treeLayout) {
+      const node = treeLayout.root.descendants().find(n => n.data.id === selectedPerson.id);
+      if (node) {
         const rect = containerRef.current.getBoundingClientRect();
         setTransform(prev => ({
           ...prev,
-          x: rect.width / 2 - pos.x * prev.scale,
-          y: rect.height / 3 - pos.y * prev.scale
+          x: rect.width / 2 - node.x * prev.scale,
+          y: rect.height / 3 - node.y * prev.scale
         }));
       }
     }
-  }, [selectedPerson?.id]);
+  }, [selectedPerson?.id, treeLayout]);
 
-  // Find spouse pairs and their children
-  const familyStructure = useMemo(() => {
-    const spousePairs = [];
-    const childrenByParents = {};
+  // Render connectors using d3 hierarchy
+  const renderConnectors = () => {
+    if (!treeLayout) return null;
 
-    // Find all spouse pairs
-    tree.family_edges.filter(e => e.relation_type === 'spouse').forEach(edge => {
-      const parent1 = edge.from_id;
-      const parent2 = edge.to_id;
-      spousePairs.push({ parent1, parent2 });
-      
-      // Initialize children set for this pair
-      const pairKey = [parent1, parent2].sort().join('-');
-      childrenByParents[pairKey] = { pair: { parent1, parent2 }, children: new Set() };
+    const connectors = [];
+    const { root, spouseMap } = treeLayout;
+
+    // Draw parent-child links
+    root.links().forEach((link, idx) => {
+      const sourceX = link.source.x;
+      const sourceY = link.source.y + 96; // Bottom of portrait
+      const targetX = link.target.x;
+      const targetY = link.target.y; // Top of portrait
+
+      // Draw vertical + horizontal path
+      const midY = (sourceY + targetY) / 2;
+
+      connectors.push(
+        <path
+          key={`link-${idx}`}
+          d={`M ${sourceX},${sourceY} L ${sourceX},${midY} L ${targetX},${midY} L ${targetX},${targetY}`}
+          stroke="#b45309"
+          strokeWidth="3"
+          fill="none"
+        />
+      );
     });
 
-    // Group children by their parent pairs
-    tree.family_edges.filter(e => e.relation_type === 'parent_child').forEach(edge => {
-      const parentId = edge.from_id;
-      const childId = edge.to_id;
-      
-      // Find which spouse pair this parent belongs to
-      for (const pairKey in childrenByParents) {
-        const { pair } = childrenByParents[pairKey];
-        if (pair.parent1 === parentId || pair.parent2 === parentId) {
-          childrenByParents[pairKey].children.add(childId);
-          break;
+    // Draw spouse connections
+    root.descendants().forEach((node, idx) => {
+      if (node.data.spouse) {
+        const spouseId = node.data.spouse.id;
+        const spouseNode = root.descendants().find(n => n.data.id === spouseId);
+        
+        if (spouseNode && node.data.id < spouseId) { // Draw once per pair
+          const x1 = node.x;
+          const y1 = node.y + 48; // Center of portrait
+          const x2 = spouseNode.x;
+          const y2 = spouseNode.y + 48;
+
+          connectors.push(
+            <line
+              key={`spouse-${idx}`}
+              x1={x1}
+              y1={y1}
+              x2={x2}
+              y2={y2}
+              stroke="#b45309"
+              strokeWidth="3"
+            />
+          );
+
+          // Marriage node
+          const midX = (x1 + x2) / 2;
+          const midY = (y1 + y2) / 2;
+          connectors.push(
+            <rect
+              key={`marriage-${idx}`}
+              x={midX - 6}
+              y={midY - 6}
+              width="12"
+              height="12"
+              fill="#dc2626"
+              stroke="#fbbf24"
+              strokeWidth="2"
+              rx="2"
+            />
+          );
         }
       }
     });
 
-    return { spousePairs, childrenByParents };
-  }, [tree.family_edges]);
-
-  // Render connectors
-  const renderConnectors = () => {
-    const connectors = [];
-    const debugMarkers = [];
-    const { spousePairs, childrenByParents } = familyStructure;
-    
-    // STEP 1: Calculate ALL marriage node positions ONCE
-    const marriageNodes = {};
-    spousePairs.forEach((pair) => {
-      const pos1 = positionMap[pair.parent1];
-      const pos2 = positionMap[pair.parent2];
-      if (pos1 && pos2) {
-        const marriageKey = [pair.parent1, pair.parent2].sort().join('-');
-        const customMarriagePos = marriageNodePositions[marriageKey];
-        marriageNodes[marriageKey] = {
-          x: customMarriagePos?.x ?? (pos1.centerX + pos2.centerX) / 2,
-          y: customMarriagePos?.y ?? Math.max(pos1.y, pos2.y) + 96,
-          pair
-        };
-      }
-    });
-    
-    // STEP 2: Draw spouse connections using calculated marriage nodes
-    Object.entries(marriageNodes).forEach(([marriageKey, marriageNode], idx) => {
-      const { x: marriageX, y: marriageY, pair } = marriageNode;
-      const pos1 = positionMap[pair.parent1];
-      const pos2 = positionMap[pair.parent2];
-      
-      // Parent 1 → Marriage Node
-      connectors.push(
-        <line
-          key={`spouse-line-1-${marriageKey}`}
-          x1={pos1.centerX}
-          y1={pos1.y + 96}
-          x2={marriageX}
-          y2={marriageY}
-          stroke="#b45309"
-          strokeWidth="3"
-        />
-      );
-      
-      // Parent 2 → Marriage Node
-      connectors.push(
-        <line
-          key={`spouse-line-2-${marriageKey}`}
-          x1={pos2.centerX}
-          y1={pos2.y + 96}
-          x2={marriageX}
-          y2={marriageY}
-          stroke="#b45309"
-          strokeWidth="3"
-        />
-      );
-      
-      // Marriage Node (red square)
-      connectors.push(
-        <rect
-          key={`spouse-node-${marriageKey}`}
-          x={marriageX - 6}
-          y={marriageY - 6}
-          width="12"
-          height="12"
-          fill="#dc2626"
-          stroke="#fbbf24"
-          strokeWidth="2"
-          rx="2"
-          className="cursor-move"
-          style={{ pointerEvents: 'all', cursor: 'move' }}
-          onMouseDown={(e) => handleMarriageNodeMouseDown(e, pair, idx)}
-        />
-      );
-      
-      // Debug: Green circle at marriage node center
-      debugMarkers.push(
-        <circle
-          key={`debug-marriage-${marriageKey}`}
-          cx={marriageX}
-          cy={marriageY}
-          r="4"
-          fill="#22c55e"
-          opacity="0.7"
-        />
-      );
-    });
-
-    // STEP 3: Draw parent-to-children connections using SAME marriage nodes
-    Object.values(childrenByParents).forEach(({ pair, children }, groupIdx) => {
-      if (children.size === 0) return;
-      
-      const childArray = Array.from(children);
-      const childPositions = childArray.map(id => positionMap[id]).filter(Boolean);
-      if (childPositions.length === 0) return;
-
-      // Use the SAME marriage key and position calculated in STEP 1
-      const marriageKey = [pair.parent1, pair.parent2].sort().join('-');
-      const marriageNode = marriageNodes[marriageKey];
-      
-      if (!marriageNode) {
-        console.error('Marriage node not found for', marriageKey);
-        return;
-      }
-      
-      const marriageX = marriageNode.x;
-      const marriageY = marriageNode.y;
-      
-      // Calculate child branch positions
-      const childXs = childPositions.map(c => c.centerX);
-      const leftMostChildX = Math.min(...childXs);
-      const rightMostChildX = Math.max(...childXs);
-      const topMostChildY = Math.min(...childPositions.map(c => c.topY));
-      const horizontalBarY = topMostChildY - 60; // Increased spacing for trunk visibility
-      
-      // VERTICAL TRUNK: Marriage Node → Horizontal Bar
-      connectors.push(
-        <line
-          key={`trunk-${marriageKey}`}
-          x1={marriageX}
-          y1={marriageY}
-          x2={marriageX}
-          y2={horizontalBarY}
-          stroke="#b45309"
-          strokeWidth="3"
-        />
-      );
-      
-      // Debug: Blue circle where trunk meets horizontal bar
-      debugMarkers.push(
-        <circle
-          key={`debug-trunk-end-${marriageKey}`}
-          cx={marriageX}
-          cy={horizontalBarY}
-          r="4"
-          fill="#3b82f6"
-          opacity="0.7"
-        />
-      );
-
-      // HORIZONTAL BAR: Connects all siblings
-      connectors.push(
-        <line
-          key={`sibling-bar-${marriageKey}`}
-          x1={leftMostChildX}
-          y1={horizontalBarY}
-          x2={rightMostChildX}
-          y2={horizontalBarY}
-          stroke="#b45309"
-          strokeWidth="3"
-        />
-      );
-
-      // INDIVIDUAL CHILD CONNECTORS: Horizontal Bar → Each Child
-      childPositions.forEach((childPos, childIdx) => {
-        connectors.push(
-          <line
-            key={`child-drop-${marriageKey}-${childIdx}`}
-            x1={childPos.centerX}
-            y1={horizontalBarY}
-            x2={childPos.centerX}
-            y2={childPos.topY}
-            stroke="#b45309"
-            strokeWidth="3"
-          />
-        );
-        
-        // Debug: Yellow circle at top of each child
-        debugMarkers.push(
-          <circle
-            key={`debug-child-top-${marriageKey}-${childIdx}`}
-            cx={childPos.centerX}
-            cy={childPos.topY}
-            r="3"
-            fill="#eab308"
-            opacity="0.7"
-          />
-        );
-      });
-    });
-
-    // STEP 4: Draw special relations (dashed lines)
+    // Draw special relations
     if (tree.special_relations) {
       tree.special_relations.forEach((rel, idx) => {
-        const fromPos = positionMap[rel.from_id];
-        const toPos = positionMap[rel.to_id];
+        const fromNode = root.descendants().find(n => n.data.id === rel.from_id);
+        const toNode = root.descendants().find(n => n.data.id === rel.to_id);
         
-        if (fromPos && toPos) {
+        if (fromNode && toNode) {
           const relationColors = {
             rival: '#ef4444',
-            mentor: '#3b82f6', 
+            mentor: '#3b82f6',
             sworn_enemy: '#991b1b',
             lover: '#ec4899',
             oath_bound: '#8b5cf6',
             betrayer: '#f97316'
           };
           const color = relationColors[rel.relation_type] || '#6b7280';
-          
+
           connectors.push(
             <line
               key={`special-${idx}`}
-              x1={fromPos.centerX}
-              y1={fromPos.centerY}
-              x2={toPos.centerX}
-              y2={toPos.centerY}
+              x1={fromNode.x}
+              y1={fromNode.y + 48}
+              x2={toNode.x}
+              y2={toNode.y + 48}
               stroke={color}
               strokeWidth="2"
               strokeDasharray="6,4"
@@ -489,8 +220,10 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
       });
     }
 
-    return [...connectors, ...debugMarkers];
+    return connectors;
   };
+
+  if (!treeLayout) return <div className="w-full h-full flex items-center justify-center text-amber-100">Loading tree...</div>;
 
   return (
     <div
@@ -506,10 +239,8 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
         backgroundColor: '#1c1917'
       }}
     >
-      {/* Canvas background for drag detection */}
       <div className="canvas-background absolute inset-0" />
 
-      {/* Tree content */}
       <div
         className="absolute"
         style={{
@@ -533,24 +264,47 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
         </svg>
 
         {/* Character nodes */}
-        {tree.persons.map((person) => {
-          const pos = positionMap[person.id];
-          if (!pos) return null;
-          
+        {treeLayout.root.descendants().map((node) => {
+          const person = node.data.person;
+          if (!person) return null;
+
           return (
             <div
               key={person.id}
-              className="absolute cursor-move"
+              className="absolute"
               style={{
-                left: `${pos.x}px`,
-                top: `${pos.y}px`,
+                left: `${node.x}px`,
+                top: `${node.y}px`,
                 transform: 'translateX(-50%)'
               }}
-              onMouseDown={(e) => handlePortraitMouseDown(e, person.id)}
             >
               <CharacterNode
                 person={person}
                 isSelected={selectedPerson?.id === person.id}
+                onClick={onSelectPerson}
+              />
+            </div>
+          );
+        })}
+
+        {/* Render spouses alongside their partners */}
+        {treeLayout.root.descendants().map((node) => {
+          const spouse = node.data.spouse;
+          if (!spouse) return null;
+
+          return (
+            <div
+              key={spouse.id}
+              className="absolute"
+              style={{
+                left: `${node.x + 150}px`, // Offset spouse to the right
+                top: `${node.y}px`,
+                transform: 'translateX(-50%)'
+              }}
+            >
+              <CharacterNode
+                person={spouse}
+                isSelected={selectedPerson?.id === spouse.id}
                 onClick={onSelectPerson}
               />
             </div>
