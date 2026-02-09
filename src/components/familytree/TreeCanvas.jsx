@@ -85,9 +85,10 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
             childX += layout.width + SIBLING_SPACING;
           });
 
-          // Total width of all children
+          // Calculate children center based on their actual center positions
+          const childCenters = childIds.map(childId => positions[childId].centerX);
+          const childrenCenter = childCenters.reduce((a, b) => a + b, 0) / childCenters.length;
           const totalChildWidth = childX - x - SIBLING_SPACING;
-          const childrenCenter = x + totalChildWidth / 2;
 
           // Position parents centered above children
           const parent1X = childrenCenter - COUPLE_SPACING / 2 - 40;
