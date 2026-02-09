@@ -160,7 +160,7 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
   const handleMouseMove = (e) => {
     if (draggingMarriageIdx !== null) {
       const pair = familyStructure.spousePairs[draggingMarriageIdx];
-      const marriageKey = `${pair.parent1}-${pair.parent2}`;
+      const marriageKey = [pair.parent1, pair.parent2].sort().join('-');
       const pos1 = positionMap[pair.parent1];
       const pos2 = positionMap[pair.parent2];
       
