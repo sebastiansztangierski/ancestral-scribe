@@ -138,7 +138,7 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
     setDraggingMarriageIdx(idx);
     const pos1 = positionMap[pair.parent1];
     const pos2 = positionMap[pair.parent2];
-    const marriageKey = `${pair.parent1}-${pair.parent2}`;
+    const marriageKey = [pair.parent1, pair.parent2].sort().join('-');
     const currentMarriagePos = marriageNodePositions[marriageKey];
     const midX = currentMarriagePos?.x ?? (pos1.centerX + pos2.centerX) / 2;
     const midY = currentMarriagePos?.y ?? Math.max(pos1.y, pos2.y) + 96;
