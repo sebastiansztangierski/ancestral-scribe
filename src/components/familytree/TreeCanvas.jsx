@@ -353,41 +353,44 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
       
       if (childPositions.length === 0) return;
 
-      // Marriage point - use custom position if set
+      // MARRIAGE NODE (the family junction) - this is the central connection point
       const marriageKey = `${pair.parent1}-${pair.parent2}`;
       const customMarriagePos = marriageNodePositions[marriageKey];
-      const marriageX = customMarriagePos?.x ?? (pos1.centerX + pos2.centerX) / 2;
-      const marriageY = customMarriagePos?.y ?? Math.max(pos1.y, pos2.y) + 96;
+      const marriageNodeX = customMarriagePos?.x ?? (pos1.centerX + pos2.centerX) / 2;
+      const marriageNodeY = customMarriagePos?.y ?? Math.max(pos1.y, pos2.y) + 96;
       
-      // Get the range of child positions
+      // CHILD BRANCH - Calculate positions for children
       const childXs = childPositions.map(c => c.centerX);
       const leftMostChildX = Math.min(...childXs);
       const rightMostChildX = Math.max(...childXs);
+      const topMostChildY = Math.min(...childPositions.map(c => c.topY));
       
-      // Find the topmost Y coordinate among all children (should be same for same generation)
-      const childrenTopYs = childPositions.map(c => c.topY);
-      const topMostChildY = Math.min(...childrenTopYs);
-      
-      // Place horizontal bar 40px above the topmost child to ensure clear connection
+      // HORIZONTAL BAR - Where all siblings connect (40px above children's tops)
       const horizontalBarY = topMostChildY - 40;
       
-      // Draw vertical line from marriage node down to horizontal bar
+      // VERTICAL TRUNK - From marriage node DOWN to horizontal bar
+      // This is the critical link that MUST always be drawn
+      const trunkX = marriageNodeX;
+      const trunkStartY = marriageNodeY;
+      const trunkEndY = horizontalBarY;
+      
+      // Draw the vertical trunk (MarriageNode → ChildBranch)
       connectors.push(
         <line
-          key={`parent-drop-${groupIdx}`}
-          x1={marriageX}
-          y1={marriageY}
-          x2={marriageX}
-          y2={horizontalBarY}
+          key={`marriage-to-children-trunk-${groupIdx}`}
+          x1={trunkX}
+          y1={trunkStartY}
+          x2={trunkX}
+          y2={trunkEndY}
           stroke="#b45309"
           strokeWidth="3"
         />
       );
 
-      // Draw horizontal bar connecting all children
+      // Draw horizontal bar connecting all siblings
       connectors.push(
         <line
-          key={`children-bar-${groupIdx}`}
+          key={`sibling-bar-${groupIdx}`}
           x1={leftMostChildX}
           y1={horizontalBarY}
           x2={rightMostChildX}
@@ -397,11 +400,11 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
         />
       );
 
-      // Draw vertical lines from horizontal bar down to each child
+      // Draw individual child connectors (HorizontalBar → Child)
       childPositions.forEach((childPos, childIdx) => {
         connectors.push(
           <line
-            key={`child-connector-${groupIdx}-${childIdx}`}
+            key={`child-drop-${groupIdx}-${childIdx}`}
             x1={childPos.centerX}
             y1={horizontalBarY}
             x2={childPos.centerX}
