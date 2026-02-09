@@ -280,117 +280,144 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
   // Render connectors
   const renderConnectors = () => {
     const connectors = [];
+    const debugMarkers = [];
     const { spousePairs, childrenByParents } = familyStructure;
     
-    // Draw spouse connections
-    spousePairs.forEach((pair, idx) => {
+    // STEP 1: Calculate ALL marriage node positions ONCE
+    const marriageNodes = {};
+    spousePairs.forEach((pair) => {
       const pos1 = positionMap[pair.parent1];
       const pos2 = positionMap[pair.parent2];
-      
       if (pos1 && pos2) {
         const marriageKey = [pair.parent1, pair.parent2].sort().join('-');
         const customMarriagePos = marriageNodePositions[marriageKey];
-        
-        // Marriage node position - use custom or calculate default
-        const marriageX = customMarriagePos?.x ?? (pos1.centerX + pos2.centerX) / 2;
-        const marriageY = customMarriagePos?.y ?? Math.max(pos1.y, pos2.y) + 96;
-        
-        // Connect parent 1 to marriage node
-        connectors.push(
-          <line
-            key={`spouse-line-1-${idx}`}
-            x1={pos1.centerX}
-            y1={pos1.y + 96}
-            x2={marriageX}
-            y2={marriageY}
-            stroke="#b45309"
-            strokeWidth="3"
-          />
-        );
-        
-        // Connect parent 2 to marriage node
-        connectors.push(
-          <line
-            key={`spouse-line-2-${idx}`}
-            x1={pos2.centerX}
-            y1={pos2.y + 96}
-            x2={marriageX}
-            y2={marriageY}
-            stroke="#b45309"
-            strokeWidth="3"
-          />
-        );
-        
-        // Marriage node (pink/red square)
-        connectors.push(
-          <rect
-            key={`spouse-node-${idx}`}
-            x={marriageX - 6}
-            y={marriageY - 6}
-            width="12"
-            height="12"
-            fill="#dc2626"
-            stroke="#fbbf24"
-            strokeWidth="2"
-            rx="2"
-            className="cursor-move"
-            style={{ pointerEvents: 'all', cursor: 'move' }}
-            onMouseDown={(e) => handleMarriageNodeMouseDown(e, pair, idx)}
-          />
-        );
+        marriageNodes[marriageKey] = {
+          x: customMarriagePos?.x ?? (pos1.centerX + pos2.centerX) / 2,
+          y: customMarriagePos?.y ?? Math.max(pos1.y, pos2.y) + 96,
+          pair
+        };
       }
     });
-
-    // Draw parent-to-children connections
-    Object.values(childrenByParents).forEach(({ pair, children }, groupIdx) => {
+    
+    // STEP 2: Draw spouse connections using calculated marriage nodes
+    Object.entries(marriageNodes).forEach(([marriageKey, marriageNode], idx) => {
+      const { x: marriageX, y: marriageY, pair } = marriageNode;
       const pos1 = positionMap[pair.parent1];
       const pos2 = positionMap[pair.parent2];
       
-      if (!pos1 || !pos2 || children.size === 0) return;
-      
-      const childArray = Array.from(children);
-      const childPositions = childArray.map(id => positionMap[id]).filter(Boolean);
-      
-      if (childPositions.length === 0) return;
-
-      // MARRIAGE NODE (the family junction) - use SORTED key for consistency
-      const marriageKey = [pair.parent1, pair.parent2].sort().join('-');
-      const customMarriagePos = marriageNodePositions[marriageKey];
-      const marriageNodeX = customMarriagePos?.x ?? (pos1.centerX + pos2.centerX) / 2;
-      const marriageNodeY = customMarriagePos?.y ?? Math.max(pos1.y, pos2.y) + 96;
-      
-      // CHILD BRANCH - Calculate positions for children
-      const childXs = childPositions.map(c => c.centerX);
-      const leftMostChildX = Math.min(...childXs);
-      const rightMostChildX = Math.max(...childXs);
-      const topMostChildY = Math.min(...childPositions.map(c => c.topY));
-      
-      // HORIZONTAL BAR - Where all siblings connect (40px above children's tops)
-      const horizontalBarY = topMostChildY - 40;
-      
-      // VERTICAL TRUNK - From marriage node DOWN to horizontal bar
-      // This is the critical link that MUST always be drawn
-      const trunkX = marriageNodeX;
-      const trunkStartY = marriageNodeY;
-      const trunkEndY = horizontalBarY;
-      
-      // Draw the vertical trunk (MarriageNode → ChildBranch)
+      // Parent 1 → Marriage Node
       connectors.push(
         <line
-          key={`marriage-to-children-trunk-${groupIdx}`}
-          x1={trunkX}
-          y1={trunkStartY}
-          x2={trunkX}
-          y2={trunkEndY}
+          key={`spouse-line-1-${marriageKey}`}
+          x1={pos1.centerX}
+          y1={pos1.y + 96}
+          x2={marriageX}
+          y2={marriageY}
           stroke="#b45309"
           strokeWidth="3"
         />
       );
-
-      // Draw horizontal bar connecting all siblings
+      
+      // Parent 2 → Marriage Node
       connectors.push(
         <line
-          key={`sibling-bar-${groupIdx}`}
+          key={`spouse-line-2-${marriageKey}`}
+          x1={pos2.centerX}
+          y1={pos2.y + 96}
+          x2={marriageX}
+          y2={marriageY}
+          stroke="#b45309"
+          strokeWidth="3"
+        />
+      );
+      
+      // Marriage Node (red square)
+      connectors.push(
+        <rect
+          key={`spouse-node-${marriageKey}`}
+          x={marriageX - 6}
+          y={marriageY - 6}
+          width="12"
+          height="12"
+          fill="#dc2626"
+          stroke="#fbbf24"
+          strokeWidth="2"
+          rx="2"
+          className="cursor-move"
+          style={{ pointerEvents: 'all', cursor: 'move' }}
+          onMouseDown={(e) => handleMarriageNodeMouseDown(e, pair, idx)}
+        />
+      );
+      
+      // Debug: Green circle at marriage node center
+      debugMarkers.push(
+        <circle
+          key={`debug-marriage-${marriageKey}`}
+          cx={marriageX}
+          cy={marriageY}
+          r="4"
+          fill="#22c55e"
+          opacity="0.7"
+        />
+      );
+    });
+
+    // STEP 3: Draw parent-to-children connections using SAME marriage nodes
+    Object.values(childrenByParents).forEach(({ pair, children }, groupIdx) => {
+      if (children.size === 0) return;
+      
+      const childArray = Array.from(children);
+      const childPositions = childArray.map(id => positionMap[id]).filter(Boolean);
+      if (childPositions.length === 0) return;
+
+      // Use the SAME marriage key and position calculated in STEP 1
+      const marriageKey = [pair.parent1, pair.parent2].sort().join('-');
+      const marriageNode = marriageNodes[marriageKey];
+      
+      if (!marriageNode) {
+        console.error('Marriage node not found for', marriageKey);
+        return;
+      }
+      
+      const marriageX = marriageNode.x;
+      const marriageY = marriageNode.y;
+      
+      // Calculate child branch positions
+      const childXs = childPositions.map(c => c.centerX);
+      const leftMostChildX = Math.min(...childXs);
+      const rightMostChildX = Math.max(...childXs);
+      const topMostChildY = Math.min(...childPositions.map(c => c.topY));
+      const horizontalBarY = topMostChildY - 40;
+      
+      // VERTICAL TRUNK: Marriage Node → Horizontal Bar
+      connectors.push(
+        <line
+          key={`trunk-${marriageKey}`}
+          x1={marriageX}
+          y1={marriageY}
+          x2={marriageX}
+          y2={horizontalBarY}
+          stroke="#b45309"
+          strokeWidth="3"
+        />
+      );
+      
+      // Debug: Blue circle where trunk meets horizontal bar
+      debugMarkers.push(
+        <circle
+          key={`debug-trunk-end-${marriageKey}`}
+          cx={marriageX}
+          cy={horizontalBarY}
+          r="4"
+          fill="#3b82f6"
+          opacity="0.7"
+        />
+      );
+
+      // HORIZONTAL BAR: Connects all siblings
+      connectors.push(
+        <line
+          key={`sibling-bar-${marriageKey}`}
           x1={leftMostChildX}
           y1={horizontalBarY}
           x2={rightMostChildX}
@@ -400,11 +427,11 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
         />
       );
 
-      // Draw individual child connectors (HorizontalBar → Child)
+      // INDIVIDUAL CHILD CONNECTORS: Horizontal Bar → Each Child
       childPositions.forEach((childPos, childIdx) => {
         connectors.push(
           <line
-            key={`child-drop-${groupIdx}-${childIdx}`}
+            key={`child-drop-${marriageKey}-${childIdx}`}
             x1={childPos.centerX}
             y1={horizontalBarY}
             x2={childPos.centerX}
@@ -413,10 +440,22 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
             strokeWidth="3"
           />
         );
+        
+        // Debug: Yellow circle at top of each child
+        debugMarkers.push(
+          <circle
+            key={`debug-child-top-${marriageKey}-${childIdx}`}
+            cx={childPos.centerX}
+            cy={childPos.topY}
+            r="3"
+            fill="#eab308"
+            opacity="0.7"
+          />
+        );
       });
     });
 
-    // Draw special relations (dashed lines)
+    // STEP 4: Draw special relations (dashed lines)
     if (tree.special_relations) {
       tree.special_relations.forEach((rel, idx) => {
         const fromPos = positionMap[rel.from_id];
@@ -450,7 +489,7 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
       });
     }
 
-    return connectors;
+    return [...connectors, ...debugMarkers];
   };
 
   return (
