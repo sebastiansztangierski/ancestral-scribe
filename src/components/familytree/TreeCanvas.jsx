@@ -387,7 +387,7 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
       const leftMostChildX = Math.min(...childXs);
       const rightMostChildX = Math.max(...childXs);
       const topMostChildY = Math.min(...childPositions.map(c => c.topY));
-      const horizontalBarY = topMostChildY - 40;
+      const horizontalBarY = topMostChildY - 60; // Increased spacing for trunk visibility
       
       // VERTICAL TRUNK: Marriage Node → Horizontal Bar
       connectors.push(
