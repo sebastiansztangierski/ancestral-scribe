@@ -22,7 +22,6 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
 
     // Group children by parent pairs
     const childrenByCouple = new Map();
-    const parentsByChild = new Map();
     tree.family_edges
       .filter(e => e.relation_type === 'parent_child')
       .forEach(edge => {
@@ -36,83 +35,92 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
             childrenByCouple.set(coupleKey, new Set());
           }
           childrenByCouple.get(coupleKey).add(childId);
-          parentsByChild.set(childId, coupleKey);
         }
       });
-
-    // Group persons by generation
-    const generations = {};
-    tree.persons.forEach(person => {
-      if (!generations[person.generation]) {
-        generations[person.generation] = [];
-      }
-      generations[person.generation].push(person);
-    });
 
     // Layout configuration
     const COUPLE_SPACING = 150;
     const GENERATION_SPACING = 250;
-    const GROUP_SPACING = 300;
+    const SIBLING_SPACING = 200;
 
     const positions = {};
     const couples = [];
+    const personById = {};
+    tree.persons.forEach(p => personById[p.id] = p);
 
-    // Process each generation
-    Object.entries(generations)
-      .sort(([a], [b]) => parseInt(a) - parseInt(b))
-      .forEach(([gen, persons]) => {
-        const genNum = parseInt(gen);
-        const y = genNum * GENERATION_SPACING;
+    // Recursive layout function
+    function layoutSubtree(personId, x, y) {
+      const person = personById[personId];
+      if (!person || positions[personId]) return { width: 0, center: x };
 
-        const processed = new Set();
-        let currentX = 100;
+      const spouseId = spouseMap.get(personId);
+      const spouse = spouseId ? personById[spouseId] : null;
 
-        persons.forEach(person => {
-          if (processed.has(person.id)) return;
+      if (spouse && !positions[spouse.id]) {
+        // This is a couple
+        const coupleKey = [personId, spouse.id].sort().join('-');
+        const childIds = Array.from(childrenByCouple.get(coupleKey) || []);
 
-          const spouseId = spouseMap.get(person.id);
-          const spouse = spouseId ? persons.find(p => p.id === spouseId) : null;
+        if (childIds.length === 0) {
+          // No children - simple couple layout
+          positions[personId] = { x, y, centerX: x, centerY: y + 48 };
+          positions[spouse.id] = { x: x + COUPLE_SPACING, y, centerX: x + COUPLE_SPACING, centerY: y + 48 };
+          
+          couples.push({
+            person1: personId,
+            person2: spouse.id,
+            children: []
+          });
 
-          if (spouse && !processed.has(spouse.id)) {
-            // Couple
-            const coupleKey = [person.id, spouse.id].sort().join('-');
-            const children = Array.from(childrenByCouple.get(coupleKey) || []);
+          return { width: COUPLE_SPACING, center: x + COUPLE_SPACING / 2 };
+        } else {
+          // Layout children first
+          const childY = y + GENERATION_SPACING;
+          let childX = x;
+          const childLayouts = [];
 
-            positions[person.id] = { 
-              x: currentX, 
-              y: y, 
-              centerX: currentX + 40, 
-              centerY: y + 48 
-            };
-            positions[spouse.id] = { 
-              x: currentX + COUPLE_SPACING, 
-              y: y, 
-              centerX: currentX + COUPLE_SPACING + 40, 
-              centerY: y + 48 
-            };
+          childIds.forEach(childId => {
+            const layout = layoutSubtree(childId, childX, childY);
+            childLayouts.push(layout);
+            childX += layout.width + SIBLING_SPACING;
+          });
 
-            couples.push({
-              person1: person.id,
-              person2: spouse.id,
-              children
-            });
+          // Total width of all children
+          const totalChildWidth = childX - x - SIBLING_SPACING;
+          const childrenCenter = x + totalChildWidth / 2;
 
-            processed.add(person.id);
-            processed.add(spouse.id);
-            currentX += COUPLE_SPACING + GROUP_SPACING;
-          } else if (!processed.has(person.id)) {
-            // Single person
-            positions[person.id] = { 
-              x: currentX, 
-              y: y, 
-              centerX: currentX + 40, 
-              centerY: y + 48 
-            };
-            processed.add(person.id);
-            currentX += 80 + GROUP_SPACING;
-          }
-        });
-      });
+          // Position parents centered above children
+          const parent1X = childrenCenter - COUPLE_SPACING / 2;
+          const parent2X = childrenCenter + COUPLE_SPACING / 2;
+
+          positions[personId] = { x: parent1X, y, centerX: parent1X, centerY: y + 48 };
+          positions[spouse.id] = { x: parent2X, y, centerX: parent2X, centerY: y + 48 };
+
+          couples.push({
+            person1: personId,
+            person2: spouse.id,
+            children: childIds
+          });
+
+          return { width: Math.max(totalChildWidth, COUPLE_SPACING), center: childrenCenter };
+        }
+      } else if (!positions[personId]) {
+        // Single person
+        positions[personId] = { x, y, centerX: x, centerY: y + 48 };
+        return { width: 80, center: x };
+      }
+
+      return { width: 0, center: x };
+    }
+
+    // Find root (generation 0)
+    const roots = tree.persons.filter(p => p.generation === 0);
+    let currentX = 0;
+
+    roots.forEach(root => {
+      const layout = layoutSubtree(root.id, currentX, 0);
+      currentX += layout.width + SIBLING_SPACING * 2;
+    });
 
     return { positions, couples };
   }, [tree]);
