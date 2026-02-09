@@ -288,7 +288,7 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
       const pos2 = positionMap[pair.parent2];
       
       if (pos1 && pos2) {
-        const marriageKey = `${pair.parent1}-${pair.parent2}`;
+        const marriageKey = [pair.parent1, pair.parent2].sort().join('-');
         const customMarriagePos = marriageNodePositions[marriageKey];
         
         // Marriage node position - use custom or calculate default
