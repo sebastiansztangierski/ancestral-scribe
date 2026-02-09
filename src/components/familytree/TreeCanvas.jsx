@@ -20,14 +20,23 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
         spouseMap.set(edge.to_id, edge.from_id);
       });
 
-    const childrenByParent = new Map();
+    // Group children by parent pairs
+    const childrenByCouple = new Map();
     tree.family_edges
       .filter(e => e.relation_type === 'parent_child')
       .forEach(edge => {
-        if (!childrenByParent.has(edge.from_id)) {
-          childrenByParent.set(edge.from_id, []);
+        const parentId = edge.from_id;
+        const childId = edge.to_id;
+        const spouseId = spouseMap.get(parentId);
+        
+        if (spouseId) {
+          // Create a consistent key for the couple
+          const coupleKey = [parentId, spouseId].sort().join('-');
+          if (!childrenByCouple.has(coupleKey)) {
+            childrenByCouple.set(coupleKey, new Set());
+          }
+          childrenByCouple.get(coupleKey).add(childId);
         }
-        childrenByParent.get(edge.from_id).push(edge.to_id);
       });
 
     // Group persons by generation
@@ -66,7 +75,8 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
 
           if (spouse && !processed.has(spouse.id)) {
             // This is a couple
-            const children = childrenByParent.get(person.id) || childrenByParent.get(spouse.id) || [];
+            const coupleKey = [person.id, spouse.id].sort().join('-');
+            const children = Array.from(childrenByCouple.get(coupleKey) || []);
             groups.push({
               type: 'couple',
               persons: [person, spouse],
@@ -81,12 +91,11 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
               children
             });
           } else if (!processed.has(person.id)) {
-            // Single person
-            const children = childrenByParent.get(person.id) || [];
+            // Single person (no spouse)
             groups.push({
               type: 'single',
               persons: [person],
-              children
+              children: []
             });
             processed.add(person.id);
           }
