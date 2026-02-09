@@ -362,8 +362,7 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
               className="absolute"
               style={{
                 left: `${pos.x}px`,
-                top: `${pos.y}px`,
-                transform: 'translateX(-50%)'
+                top: `${pos.y}px`
               }}
             >
               <CharacterNode
