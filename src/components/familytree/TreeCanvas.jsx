@@ -353,8 +353,8 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
       
       if (childPositions.length === 0) return;
 
-      // MARRIAGE NODE (the family junction) - this is the central connection point
-      const marriageKey = `${pair.parent1}-${pair.parent2}`;
+      // MARRIAGE NODE (the family junction) - use SORTED key for consistency
+      const marriageKey = [pair.parent1, pair.parent2].sort().join('-');
       const customMarriagePos = marriageNodePositions[marriageKey];
       const marriageNodeX = customMarriagePos?.x ?? (pos1.centerX + pos2.centerX) / 2;
       const marriageNodeY = customMarriagePos?.y ?? Math.max(pos1.y, pos2.y) + 96;
