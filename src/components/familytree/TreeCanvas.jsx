@@ -365,11 +365,11 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
       const rightMostChildX = Math.max(...childXs);
       
       // Find the topmost Y coordinate among all children (should be same for same generation)
-      const childrenTopYs = childPositions.map(c => c.topY || c.y);
+      const childrenTopYs = childPositions.map(c => c.topY);
       const topMostChildY = Math.min(...childrenTopYs);
       
-      // Place horizontal bar 30px above the topmost child
-      const horizontalBarY = topMostChildY - 30;
+      // Place horizontal bar 40px above the topmost child to ensure clear connection
+      const horizontalBarY = topMostChildY - 40;
       
       // Draw vertical line from marriage node down to horizontal bar
       connectors.push(
