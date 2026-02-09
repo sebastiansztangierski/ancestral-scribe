@@ -211,7 +211,7 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
   useEffect(() => {
     const initialPositions = {};
     familyStructure.spousePairs.forEach((pair) => {
-      const marriageKey = `${pair.parent1}-${pair.parent2}`;
+      const marriageKey = [pair.parent1, pair.parent2].sort().join('-');
       if (!marriageNodePositions[marriageKey]) {
         const pos1 = positionMap[pair.parent1];
         const pos2 = positionMap[pair.parent2];
