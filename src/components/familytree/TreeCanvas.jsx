@@ -63,8 +63,8 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
 
         if (childIds.length === 0) {
           // No children - simple couple layout
-          positions[personId] = { x, y, centerX: x, centerY: y + 48 };
-          positions[spouse.id] = { x: x + COUPLE_SPACING, y, centerX: x + COUPLE_SPACING, centerY: y + 48 };
+          positions[personId] = { x, y, centerX: x + 40, centerY: y + 48 };
+          positions[spouse.id] = { x: x + COUPLE_SPACING, y, centerX: x + COUPLE_SPACING + 40, centerY: y + 48 };
           
           couples.push({
             person1: personId,
@@ -72,7 +72,7 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
             children: []
           });
 
-          return { width: COUPLE_SPACING, center: x + COUPLE_SPACING / 2 };
+          return { width: COUPLE_SPACING + 80, center: x + COUPLE_SPACING / 2 + 40 };
         } else {
           // Layout children first
           const childY = y + GENERATION_SPACING;
@@ -90,11 +90,11 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
           const childrenCenter = x + totalChildWidth / 2;
 
           // Position parents centered above children
-          const parent1X = childrenCenter - COUPLE_SPACING / 2;
-          const parent2X = childrenCenter + COUPLE_SPACING / 2;
+          const parent1X = childrenCenter - COUPLE_SPACING / 2 - 40;
+          const parent2X = childrenCenter + COUPLE_SPACING / 2 - 40;
 
-          positions[personId] = { x: parent1X, y, centerX: parent1X, centerY: y + 48 };
-          positions[spouse.id] = { x: parent2X, y, centerX: parent2X, centerY: y + 48 };
+          positions[personId] = { x: parent1X, y, centerX: parent1X + 40, centerY: y + 48 };
+          positions[spouse.id] = { x: parent2X, y, centerX: parent2X + 40, centerY: y + 48 };
 
           couples.push({
             person1: personId,
@@ -106,8 +106,8 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
         }
       } else if (!positions[personId]) {
         // Single person
-        positions[personId] = { x, y, centerX: x, centerY: y + 48 };
-        return { width: 80, center: x };
+        positions[personId] = { x, y, centerX: x + 40, centerY: y + 48 };
+        return { width: 80, center: x + 40 };
       }
 
       return { width: 0, center: x };
