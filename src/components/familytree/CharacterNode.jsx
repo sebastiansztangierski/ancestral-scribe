@@ -64,6 +64,13 @@ export default function CharacterNode({ person, isSelected, onClick, hasSpecialR
         "absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity",
         "bg-gradient-to-t from-amber-500/20 to-transparent rounded-sm"
       )} />
+
+      {/* Special relations indicator */}
+      {hasSpecialRelations && (
+        <div className="absolute -top-1 -right-1 w-4 h-4 bg-purple-500 border-2 border-amber-900 rounded-full flex items-center justify-center shadow-lg">
+          <span className="text-[8px]">⚡</span>
+        </div>
+      )}
     </div>
   );
 }
