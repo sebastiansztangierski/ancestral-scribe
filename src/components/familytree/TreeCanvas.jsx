@@ -78,8 +78,8 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
 
           return { width: COUPLE_SPACING + 80, center: x + COUPLE_SPACING / 2 + 40 };
         } else {
-          // Layout children first
-          const childY = y + GENERATION_SPACING;
+          // Layout children first - use extended gap for vertical layout
+          const childY = y + GENERATION_SPACING + PARENT_TO_CHILD_GAP;
           let childX = x;
           const childLayouts = [];
 
