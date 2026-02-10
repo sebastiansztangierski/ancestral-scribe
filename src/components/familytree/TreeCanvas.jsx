@@ -6,6 +6,9 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
   const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [draggingCouple, setDraggingCouple] = useState(null);
+  const [coupleDragStart, setCoupleDragStart] = useState(null);
+  const [positionOverrides, setPositionOverrides] = useState({});
 
   // Build family tree layout
   const layout = useMemo(() => {
