@@ -130,10 +130,28 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
   const handleWheel = (e) => {
     e.preventDefault();
     const delta = e.deltaY > 0 ? 0.9 : 1.1;
-    setTransform(prev => ({
-      ...prev,
-      scale: Math.min(Math.max(prev.scale * delta, 0.3), 2)
-    }));
+    
+    const rect = containerRef.current.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    
+    setTransform(prev => {
+      const newScale = Math.min(Math.max(prev.scale * delta, 0.3), 2);
+      
+      // Calculate point under mouse before zoom
+      const worldX = (mouseX - prev.x) / prev.scale;
+      const worldY = (mouseY - prev.y) / prev.scale;
+      
+      // Calculate new position to keep point under mouse
+      const newX = mouseX - worldX * newScale;
+      const newY = mouseY - worldY * newScale;
+      
+      return {
+        x: newX,
+        y: newY,
+        scale: newScale
+      };
+    });
   };
 
   // Handle canvas drag
