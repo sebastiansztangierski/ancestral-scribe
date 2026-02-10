@@ -126,7 +126,80 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
       currentX += layout.width + SIBLING_SPACING * 2;
     });
 
-    return { positions, couples };
+    // Component packing step - find connected components and pack them
+    const componentGap = 80;
+    
+    // Build adjacency map for finding connected components
+    const adjacency = new Map();
+    tree.persons.forEach(p => adjacency.set(p.id, new Set()));
+    
+    tree.family_edges.forEach(edge => {
+      adjacency.get(edge.from_id).add(edge.to_id);
+      adjacency.get(edge.to_id).add(edge.from_id);
+    });
+
+    // Find all connected components using DFS
+    const visited = new Set();
+    const components = [];
+
+    function dfs(personId, component) {
+      if (visited.has(personId)) return;
+      visited.add(personId);
+      component.add(personId);
+      adjacency.get(personId).forEach(neighbor => dfs(neighbor, component));
+    }
+
+    tree.persons.forEach(person => {
+      if (!visited.has(person.id)) {
+        const component = new Set();
+        dfs(person.id, component);
+        components.push(component);
+      }
+    });
+
+    // Compute bounding box for each component
+    const componentBounds = components.map(component => {
+      const personIds = Array.from(component);
+      const xs = personIds.map(id => positions[id].x);
+      const minX = Math.min(...xs);
+      const maxX = Math.max(...xs.map((x, i) => x + 80)); // +80 for node width
+      
+      return {
+        personIds,
+        minX,
+        maxX,
+        width: maxX - minX
+      };
+    });
+
+    // Sort components by minX
+    componentBounds.sort((a, b) => a.minX - b.minX);
+
+    // Pack components left-to-right
+    let packX = 0;
+    componentBounds.forEach(comp => {
+      const deltaX = packX - comp.minX;
+      
+      // Shift all nodes in this component
+      comp.personIds.forEach(personId => {
+        positions[personId].x += deltaX;
+        positions[personId].centerX += deltaX;
+      });
+      
+      packX += comp.width + componentGap;
+    });
+
+    // Compute global bounding box after packing
+    const allX = Object.values(positions).map(p => p.x);
+    const allY = Object.values(positions).map(p => p.y);
+    const bbox = {
+      minX: Math.min(...allX),
+      maxX: Math.max(...allX) + 80,
+      minY: Math.min(...allY),
+      maxY: Math.max(...allY) + 96
+    };
+
+    return { positions, couples, bbox };
   }, [tree]);
 
   // Handle mouse wheel zoom
