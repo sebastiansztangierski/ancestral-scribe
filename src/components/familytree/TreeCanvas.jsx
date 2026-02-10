@@ -275,13 +275,15 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
       }
     });
 
-    // Draw special relations
-    if (tree.special_relations) {
-      tree.special_relations.forEach((rel, idx) => {
-        const fromPos = positions[rel.from_id];
-        const toPos = positions[rel.to_id];
+    // Draw special relations (only for selected person)
+    if (tree.special_relations && selectedPerson) {
+      tree.special_relations
+        .filter(rel => rel.from_id === selectedPerson.id || rel.to_id === selectedPerson.id)
+        .forEach((rel, idx) => {
+          const fromPos = positions[rel.from_id];
+          const toPos = positions[rel.to_id];
 
-        if (fromPos && toPos) {
+          if (fromPos && toPos) {
           const relationColors = {
             rival: '#ef4444',
             mentor: '#3b82f6',
