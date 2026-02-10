@@ -294,7 +294,7 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
         // Draw children connectors if they have children
         if (couple.children && couple.children.length > 0) {
           const childPositions = couple.children
-            .map(childId => positions[childId])
+            .map(childId => getPosition(childId))
             .filter(Boolean);
 
           if (childPositions.length > 0) {
