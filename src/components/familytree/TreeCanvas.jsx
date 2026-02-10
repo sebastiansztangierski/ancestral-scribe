@@ -41,23 +41,20 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
         }
       });
 
-    // Compact layout configuration
-    const NODE_WIDTH = 80;
-    const NODE_HEIGHT = 96;
-    const PARTNER_GAP = 20;
-    const MIN_SIBLING_GAP = 30;
-    const GENERATION_SPACING = 200;
-    const FAMILY_WIDTH = NODE_WIDTH * 2 + PARTNER_GAP;
+    // Layout configuration
+    const COUPLE_SPACING = 150;
+    const GENERATION_SPACING = 250;
+    const SIBLING_SPACING = 200;
 
     const positions = {};
     const couples = [];
     const personById = {};
     tree.persons.forEach(p => personById[p.id] = p);
 
-    // Recursive layout function - returns { width, centerX }
-    function layoutSubtree(personId, startX, y) {
+    // Recursive layout function
+    function layoutSubtree(personId, x, y) {
       const person = personById[personId];
-      if (!person || positions[personId]) return { width: 0, centerX: startX };
+      if (!person || positions[personId]) return { width: 0, center: x };
 
       const spouseId = spouseMap.get(personId);
       const spouse = spouseId ? personById[spouseId] : null;
@@ -68,10 +65,9 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
         const childIds = Array.from(childrenByCouple.get(coupleKey) || []);
 
         if (childIds.length === 0) {
-          // No children - place couple
-          const centerX = startX + FAMILY_WIDTH / 2;
-          positions[personId] = { x: startX, y, centerX: startX + NODE_WIDTH / 2, centerY: y + NODE_HEIGHT / 2 };
-          positions[spouse.id] = { x: startX + NODE_WIDTH + PARTNER_GAP, y, centerX: startX + NODE_WIDTH + PARTNER_GAP + NODE_WIDTH / 2, centerY: y + NODE_HEIGHT / 2 };
+          // No children - simple couple layout
+          positions[personId] = { x, y, centerX: x + 40, centerY: y + 48 };
+          positions[spouse.id] = { x: x + COUPLE_SPACING, y, centerX: x + COUPLE_SPACING + 40, centerY: y + 48 };
           
           couples.push({
             person1: personId,
@@ -79,29 +75,30 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
             children: []
           });
 
-          return { width: FAMILY_WIDTH, centerX };
+          return { width: COUPLE_SPACING + 80, center: x + COUPLE_SPACING / 2 + 40 };
         } else {
           // Layout children first
           const childY = y + GENERATION_SPACING;
-          let childX = startX;
+          let childX = x;
           const childLayouts = [];
 
           childIds.forEach(childId => {
-            const childLayout = layoutSubtree(childId, childX, childY);
-            childLayouts.push(childLayout);
-            childX += childLayout.width + MIN_SIBLING_GAP;
+            const layout = layoutSubtree(childId, childX, childY);
+            childLayouts.push(layout);
+            childX += layout.width + SIBLING_SPACING;
           });
 
-          // Total width of children subtree
-          const childrenWidth = childX - startX - MIN_SIBLING_GAP;
-          const childrenCenterX = startX + childrenWidth / 2;
+          // Calculate children center based on their actual center positions
+          const childCenters = childIds.map(childId => positions[childId].centerX);
+          const childrenCenter = childCenters.reduce((a, b) => a + b, 0) / childCenters.length;
+          const totalChildWidth = childX - x - SIBLING_SPACING;
 
           // Position parents centered above children
-          const parent1X = childrenCenterX - FAMILY_WIDTH / 2;
-          const parent2X = parent1X + NODE_WIDTH + PARTNER_GAP;
+          const parent1X = childrenCenter - COUPLE_SPACING / 2 - 40;
+          const parent2X = childrenCenter + COUPLE_SPACING / 2 - 40;
 
-          positions[personId] = { x: parent1X, y, centerX: parent1X + NODE_WIDTH / 2, centerY: y + NODE_HEIGHT / 2 };
-          positions[spouse.id] = { x: parent2X, y, centerX: parent2X + NODE_WIDTH / 2, centerY: y + NODE_HEIGHT / 2 };
+          positions[personId] = { x: parent1X, y, centerX: parent1X + 40, centerY: y + 48 };
+          positions[spouse.id] = { x: parent2X, y, centerX: parent2X + 40, centerY: y + 48 };
 
           couples.push({
             person1: personId,
@@ -109,70 +106,27 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
             children: childIds
           });
 
-          const subtreeWidth = Math.max(childrenWidth, FAMILY_WIDTH);
-          return { width: subtreeWidth, centerX: childrenCenterX };
+          return { width: Math.max(totalChildWidth, COUPLE_SPACING), center: childrenCenter };
         }
       } else if (!positions[personId]) {
         // Single person
-        const centerX = startX + NODE_WIDTH / 2;
-        positions[personId] = { x: startX, y, centerX, centerY: y + NODE_HEIGHT / 2 };
-        return { width: NODE_WIDTH, centerX };
+        positions[personId] = { x, y, centerX: x + 40, centerY: y + 48 };
+        return { width: 80, center: x + 40 };
       }
 
-      return { width: 0, centerX: startX };
+      return { width: 0, center: x };
     }
 
-    // Find roots and layout
+    // Find root (generation 0)
     const roots = tree.persons.filter(p => p.generation === 0);
     let currentX = 0;
 
     roots.forEach(root => {
       const layout = layoutSubtree(root.id, currentX, 0);
-      currentX += layout.width + MIN_SIBLING_GAP * 3;
+      currentX += layout.width + SIBLING_SPACING * 2;
     });
 
-    // Horizontal compaction - 2 passes per generation
-    const generations = {};
-    Object.keys(positions).forEach(personId => {
-      const gen = personById[personId].generation;
-      if (!generations[gen]) generations[gen] = [];
-      generations[gen].push(personId);
-    });
-
-    for (let pass = 0; pass < 2; pass++) {
-      Object.keys(generations).sort((a, b) => Number(a) - Number(b)).forEach(gen => {
-        const people = generations[gen].sort((a, b) => positions[a].x - positions[b].x);
-        
-        for (let i = 1; i < people.length; i++) {
-          const currentId = people[i];
-          const prevId = people[i - 1];
-          const currentPos = positions[currentId];
-          const prevPos = positions[prevId];
-          
-          // Calculate minimum allowed X (with gap)
-          const minX = prevPos.x + NODE_WIDTH + MIN_SIBLING_GAP;
-          
-          if (currentPos.x > minX) {
-            // Can shift left
-            const shift = currentPos.x - minX;
-            positions[currentId].x = minX;
-            positions[currentId].centerX -= shift;
-          }
-        }
-      });
-    }
-
-    // Compute bounding box
-    const allX = Object.values(positions).map(p => p.x);
-    const allY = Object.values(positions).map(p => p.y);
-    const bbox = {
-      minX: Math.min(...allX),
-      maxX: Math.max(...allX) + NODE_WIDTH,
-      minY: Math.min(...allY),
-      maxY: Math.max(...allY) + NODE_HEIGHT
-    };
-
-    return { positions, couples, bbox };
+    return { positions, couples };
   }, [tree]);
 
   // Handle mouse wheel zoom
