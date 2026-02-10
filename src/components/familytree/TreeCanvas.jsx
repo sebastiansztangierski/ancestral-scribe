@@ -242,15 +242,18 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
     }
   }, [selectedPerson?.id, layout]);
 
+  // Get position helper (merges overrides)
+  const getPosition = (personId) => {
+    if (!layout) return null;
+    return positionOverrides[personId] || layout.positions[personId];
+  };
+
   // Render connectors
   const renderConnectors = () => {
     if (!layout) return null;
 
     const connectors = [];
     const { positions, couples } = layout;
-    
-    // Merge position overrides
-    const getPosition = (personId) => positionOverrides[personId] || positions[personId];
 
     // Draw marriage connectors (horizontal lines between spouses)
     couples.forEach((couple, idx) => {
