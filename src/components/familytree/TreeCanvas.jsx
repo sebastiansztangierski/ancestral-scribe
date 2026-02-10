@@ -227,32 +227,6 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
     }
   };
 
-  // Auto-fit and center on load
-  useEffect(() => {
-    if (layout && containerRef.current && !selectedPerson) {
-      const rect = containerRef.current.getBoundingClientRect();
-      const { bbox } = layout;
-      
-      const treeWidth = bbox.maxX - bbox.minX;
-      const treeHeight = bbox.maxY - bbox.minY;
-      
-      // Calculate scale to fit with padding
-      const scaleX = (rect.width * 0.9) / treeWidth;
-      const scaleY = (rect.height * 0.9) / treeHeight;
-      const fitScale = Math.min(scaleX, scaleY, 1.5);
-      
-      // Center the tree
-      const centerX = rect.width / 2 - ((bbox.minX + bbox.maxX) / 2) * fitScale;
-      const centerY = rect.height / 2 - ((bbox.minY + bbox.maxY) / 2) * fitScale;
-      
-      setTransform({
-        x: centerX,
-        y: centerY,
-        scale: fitScale
-      });
-    }
-  }, [layout]);
-
   // Center on selected person
   useEffect(() => {
     if (selectedPerson && containerRef.current && layout) {
@@ -266,7 +240,7 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
         }));
       }
     }
-  }, [selectedPerson?.id]);
+  }, [selectedPerson?.id, layout]);
 
   // Get position helper (merges overrides)
   const getPosition = (personId) => {
