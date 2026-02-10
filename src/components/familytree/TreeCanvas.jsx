@@ -396,7 +396,10 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
       className="w-full h-full overflow-hidden cursor-grab active:cursor-grabbing relative"
       onWheel={handleWheel}
       onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
+      onMouseMove={(e) => {
+        handleMouseMove(e);
+        handleCoupleMouseMove(e);
+      }}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
       style={{
