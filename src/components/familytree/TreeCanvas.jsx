@@ -440,6 +440,10 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
           const pos = getPosition(person.id);
           if (!pos) return null;
 
+          const hasSpecialRelations = tree.special_relations?.some(
+            rel => rel.from_id === person.id || rel.to_id === person.id
+          );
+
           return (
             <div
               key={person.id}
@@ -453,6 +457,7 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
                 person={person}
                 isSelected={selectedPerson?.id === person.id}
                 onClick={onSelectPerson}
+                hasSpecialRelations={hasSpecialRelations}
               />
             </div>
           );
