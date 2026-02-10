@@ -23,6 +23,29 @@ const MOTTOS = [
   "As High as Honor", "Iron from Ice", "The North Remembers", "A Lannister Always Pays His Debts"
 ];
 
+const EVENT_TYPES = [
+  { title: "The Great War", iconType: "war" },
+  { title: "Royal Wedding", iconType: "marriage" },
+  { title: "The Plague Years", iconType: "plague" },
+  { title: "Conquest of the North", iconType: "conquest" },
+  { title: "Betrayal at the Gates", iconType: "betrayal" },
+  { title: "Treaty of Peace", iconType: "treaty" },
+  { title: "The Great Fire", iconType: "fire" },
+  { title: "Founding of the House", iconType: "coronation" },
+  { title: "Victory at Red Fields", iconType: "victory" },
+  { title: "Rebellion Crushed", iconType: "rebellion" },
+  { title: "Discovery of Ancient Ruins", iconType: "discovery" },
+  { title: "The Grand Festival", iconType: "festival" },
+  { title: "Fall of the Old King", iconType: "death" },
+  { title: "Coronation Ceremony", iconType: "coronation" },
+  { title: "Battle of the Rivers", iconType: "war" },
+  { title: "The Dark Winter", iconType: "death" },
+  { title: "Alliance Forged", iconType: "treaty" },
+  { title: "Siege of the Castle", iconType: "conquest" },
+  { title: "Birth of the Heir", iconType: "birth" },
+  { title: "The Dragon's Return", iconType: "fire" }
+];
+
 const BIOGRAPHIES = [
   "A fierce warrior known for valor in countless battles.",
   "A cunning strategist who shaped the fate of the realm.",
@@ -107,6 +130,31 @@ export const generateFamilyTree = (config) => {
     }
   }
 
+  // Generate timeline events
+  const timelineEvents = [];
+  const numEvents = Math.floor(Math.random() * 10) + 10; // 10-20 events
+  const usedTitles = new Set();
+  
+  for (let i = 0; i < numEvents; i++) {
+    let eventTemplate;
+    do {
+      eventTemplate = randomFrom(EVENT_TYPES);
+    } while (usedTitles.has(eventTemplate.title) && usedTitles.size < EVENT_TYPES.length);
+    
+    usedTitles.add(eventTemplate.title);
+    
+    const year = Math.floor(Math.random() * 500) + 1;
+    const era = Math.random() > 0.3 ? 'a.c.' : 'b.c.';
+    
+    timelineEvents.push({
+      id: generateId(),
+      title: eventTemplate.title,
+      year,
+      era,
+      iconType: eventTemplate.iconType
+    });
+  }
+
   return {
     house_name: houseName,
     house_motto: houseMotto || randomFrom(MOTTOS),
@@ -114,6 +162,7 @@ export const generateFamilyTree = (config) => {
     persons,
     family_edges: familyEdges,
     special_relations: specialRelations,
+    timeline_events: timelineEvents,
     share_id: generateId()
   };
 };
