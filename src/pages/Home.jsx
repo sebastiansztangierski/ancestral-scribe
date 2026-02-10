@@ -3,6 +3,7 @@ import Sidebar from '@/components/familytree/Sidebar';
 import TreeCanvas from '@/components/familytree/TreeCanvas';
 import TreeToolbar from '@/components/familytree/TreeToolbar';
 import GeneratorDialog from '@/components/familytree/GeneratorDialog';
+import Timeline from '@/components/familytree/Timeline';
 import { generateFamilyTree } from '@/components/familytree/treeGenerator';
 
 export default function Home() {
@@ -35,6 +36,10 @@ export default function Home() {
 
   const handleGenerate = (config) => {
     const newTree = generateFamilyTree(config);
+    // Ensure timeline_events exists
+    if (!newTree.timeline_events || newTree.timeline_events.length === 0) {
+      newTree.timeline_events = [];
+    }
     setTree(newTree);
     setSelectedPerson(newTree.persons[0]);
     setIsSharedView(false);
@@ -46,6 +51,10 @@ export default function Home() {
   };
 
   const handleLoadTree = (loadedTree) => {
+    // Ensure timeline_events exists (backward compatibility)
+    if (!loadedTree.timeline_events) {
+      loadedTree.timeline_events = [];
+    }
     setTree(loadedTree);
     setSelectedPerson(loadedTree.persons[0] || null);
     setIsSharedView(false);
@@ -87,7 +96,7 @@ export default function Home() {
             onSelectPerson={handleSelectPerson}
           />
         ) : (
-          <div className="h-full flex flex-col items-center justify-center text-center px-4">
+          <div className="h-full flex flex-col items-center justify-center text-center px-4 pb-20">
             <div className="text-6xl mb-6">🏰</div>
             <h1 className="text-4xl font-serif text-amber-100 mb-3">
               Fantasy Family Tree Generator
@@ -106,6 +115,11 @@ export default function Home() {
           </div>
         )}
       </div>
+
+      {/* Timeline - only show when tree exists */}
+      {tree && tree.timeline_events && tree.timeline_events.length > 0 && (
+        <Timeline events={tree.timeline_events} />
+      )}
 
       {/* Generator Dialog */}
       <GeneratorDialog
