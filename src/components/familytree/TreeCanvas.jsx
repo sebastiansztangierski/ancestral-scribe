@@ -434,7 +434,7 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
 
         {/* Character nodes */}
         {tree.persons.map((person) => {
-          const pos = layout.positions[person.id];
+          const pos = getPosition(person.id);
           if (!pos) return null;
 
           return (
