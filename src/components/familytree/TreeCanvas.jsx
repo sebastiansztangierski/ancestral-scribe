@@ -42,9 +42,10 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
       });
 
     // Layout configuration
-    const COUPLE_SPACING = 150;
-    const GENERATION_SPACING = 250;
-    const SIBLING_SPACING = 200;
+    const COUPLE_SPACING = 140;
+    const GENERATION_SPACING = 280;
+    const SIBLING_SPACING = 100;
+    const PARENT_TO_CHILD_GAP = 200;
 
     const positions = {};
     const couples = [];
@@ -127,7 +128,7 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
     });
 
     // Component packing step - find connected components and pack them
-    const componentGap = 80;
+    const componentGap = 50;
     
     // Build adjacency map for finding connected components
     const adjacency = new Map();
@@ -397,8 +398,8 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
             const childXs = childPositions.map(p => p.centerX);
             const leftChildX = Math.min(...childXs);
             const rightChildX = Math.max(...childXs);
-            const childrenY = childPositions[0].y;
-            const horizontalBarY = childrenY - 60;
+            const parentY = midY;
+            const horizontalBarY = parentY + PARENT_TO_CHILD_GAP;
 
             // Vertical trunk from marriage node to horizontal bar
             connectors.push(
