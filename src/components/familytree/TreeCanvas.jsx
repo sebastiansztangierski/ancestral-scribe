@@ -177,6 +177,54 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
 
   const handleMouseUp = () => {
     setIsDragging(false);
+    setDraggingCouple(null);
+    setCoupleDragStart(null);
+  };
+
+  const handleCoupleMouseDown = (e, couple, midX, midY) => {
+    e.stopPropagation();
+    const rect = containerRef.current.getBoundingClientRect();
+    const worldX = (e.clientX - rect.left - transform.x) / transform.scale;
+    const worldY = (e.clientY - rect.top - transform.y) / transform.scale;
+    
+    setDraggingCouple(couple);
+    setCoupleDragStart({ x: worldX - midX, y: worldY - midY });
+  };
+
+  const handleCoupleMouseMove = (e) => {
+    if (draggingCouple && coupleDragStart) {
+      const rect = containerRef.current.getBoundingClientRect();
+      const worldX = (e.clientX - rect.left - transform.x) / transform.scale;
+      const worldY = (e.clientY - rect.top - transform.y) / transform.scale;
+      
+      const newMidX = worldX - coupleDragStart.x;
+      const newMidY = worldY - coupleDragStart.y;
+      
+      const pos1 = layout.positions[draggingCouple.person1];
+      const pos2 = layout.positions[draggingCouple.person2];
+      
+      const currentMidX = (pos1.centerX + pos2.centerX) / 2;
+      const currentMidY = (pos1.centerY + pos2.centerY) / 2;
+      
+      const deltaX = newMidX - currentMidX;
+      const deltaY = newMidY - currentMidY;
+      
+      setPositionOverrides(prev => ({
+        ...prev,
+        [draggingCouple.person1]: {
+          x: pos1.x + deltaX,
+          y: pos1.y + deltaY,
+          centerX: pos1.centerX + deltaX,
+          centerY: pos1.centerY + deltaY
+        },
+        [draggingCouple.person2]: {
+          x: pos2.x + deltaX,
+          y: pos2.y + deltaY,
+          centerX: pos2.centerX + deltaX,
+          centerY: pos2.centerY + deltaY
+        }
+      }));
+    }
   };
 
   // Center on selected person
