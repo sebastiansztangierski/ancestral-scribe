@@ -248,6 +248,9 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
 
     const connectors = [];
     const { positions, couples } = layout;
+    
+    // Merge position overrides
+    const getPosition = (personId) => positionOverrides[personId] || positions[personId];
 
     // Draw marriage connectors (horizontal lines between spouses)
     couples.forEach((couple, idx) => {
