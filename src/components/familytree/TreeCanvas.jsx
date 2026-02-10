@@ -227,26 +227,6 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
     }
   };
 
-  // Auto-fit and center on load
-  useEffect(() => {
-    if (layout && containerRef.current && !selectedPerson) {
-      const rect = containerRef.current.getBoundingClientRect();
-      const { bbox } = layout;
-      
-      const treeWidth = bbox.maxX - bbox.minX;
-      const treeHeight = bbox.maxY - bbox.minY;
-      
-      const scaleX = (rect.width * 0.85) / treeWidth;
-      const scaleY = (rect.height * 0.85) / treeHeight;
-      const fitScale = Math.min(scaleX, scaleY, 1.2);
-      
-      const centerX = rect.width / 2 - ((bbox.minX + bbox.maxX) / 2) * fitScale;
-      const centerY = rect.height / 2 - ((bbox.minY + bbox.maxY) / 2) * fitScale;
-      
-      setTransform({ x: centerX, y: centerY, scale: fitScale });
-    }
-  }, [layout]);
-
   // Center on selected person
   useEffect(() => {
     if (selectedPerson && containerRef.current && layout) {
@@ -255,12 +235,12 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
         const rect = containerRef.current.getBoundingClientRect();
         setTransform(prev => ({
           ...prev,
-          x: rect.width / 2 - pos.centerX * prev.scale,
-          y: rect.height / 3 - pos.centerY * prev.scale
+          x: rect.width / 2 - pos.x * prev.scale,
+          y: rect.height / 3 - pos.y * prev.scale
         }));
       }
     }
-  }, [selectedPerson?.id]);
+  }, [selectedPerson?.id, layout]);
 
   // Get position helper (merges overrides)
   const getPosition = (personId) => {
