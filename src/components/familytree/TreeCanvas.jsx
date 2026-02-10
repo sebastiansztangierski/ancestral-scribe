@@ -354,8 +354,8 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
       tree.special_relations
         .filter(rel => rel.from_id === selectedPerson.id || rel.to_id === selectedPerson.id)
         .forEach((rel, idx) => {
-          const fromPos = positions[rel.from_id];
-          const toPos = positions[rel.to_id];
+          const fromPos = getPosition(rel.from_id);
+          const toPos = getPosition(rel.to_id);
 
           if (fromPos && toPos) {
           const relationColors = {
