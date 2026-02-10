@@ -1,7 +1,7 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 
-export default function CharacterNode({ person, isSelected, onClick }) {
+export default function CharacterNode({ person, isSelected, onClick, hasSpecialRelations }) {
   return (
     <div
       onClick={() => onClick(person)}
