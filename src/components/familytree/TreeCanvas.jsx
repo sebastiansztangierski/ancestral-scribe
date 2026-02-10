@@ -418,8 +418,9 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
       >
         {/* SVG for connectors */}
         <svg
-          className="absolute pointer-events-none"
+          className="absolute"
           style={{
+            pointerEvents: 'none',
             width: '4000px',
             height: '3000px',
             left: '-2000px',
