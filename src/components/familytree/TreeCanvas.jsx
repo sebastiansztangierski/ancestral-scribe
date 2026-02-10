@@ -254,8 +254,8 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
 
     // Draw marriage connectors (horizontal lines between spouses)
     couples.forEach((couple, idx) => {
-      const pos1 = positions[couple.person1];
-      const pos2 = positions[couple.person2];
+      const pos1 = getPosition(couple.person1);
+      const pos2 = getPosition(couple.person2);
       
       if (pos1 && pos2) {
         const midX = (pos1.centerX + pos2.centerX) / 2;
@@ -274,7 +274,7 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
           />
         );
 
-        // Marriage node (red square in center)
+        // Marriage node (red square in center - draggable)
         connectors.push(
           <rect
             key={`marriage-node-${idx}`}
@@ -286,6 +286,8 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
             stroke="#fbbf24"
             strokeWidth="2"
             rx="2"
+            className="cursor-move pointer-events-auto"
+            onMouseDown={(e) => handleCoupleMouseDown(e, couple, midX, midY)}
           />
         );
 
