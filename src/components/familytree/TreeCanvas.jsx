@@ -10,6 +10,12 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
   const [coupleDragStart, setCoupleDragStart] = useState(null);
   const [positionOverrides, setPositionOverrides] = useState({});
 
+  // Layout configuration constants
+  const COUPLE_SPACING = 140;
+  const GENERATION_SPACING = 280;
+  const SIBLING_SPACING = 100;
+  const PARENT_TO_CHILD_GAP = 200;
+
   // Build family tree layout
   const layout = useMemo(() => {
     if (!tree || !tree.persons || tree.persons.length === 0) return null;
@@ -40,12 +46,6 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
           childrenByCouple.get(coupleKey).add(childId);
         }
       });
-
-    // Layout configuration
-    const COUPLE_SPACING = 140;
-    const GENERATION_SPACING = 280;
-    const SIBLING_SPACING = 100;
-    const PARENT_TO_CHILD_GAP = 200;
 
     const positions = {};
     const couples = [];
@@ -201,7 +201,7 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
     };
 
     return { positions, couples, bbox };
-  }, [tree]);
+  }, [tree, COUPLE_SPACING, GENERATION_SPACING, SIBLING_SPACING]);
 
   // Handle mouse wheel zoom
   const handleWheel = (e) => {
