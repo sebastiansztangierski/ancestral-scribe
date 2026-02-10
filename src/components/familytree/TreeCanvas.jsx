@@ -42,9 +42,9 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
       });
 
     // Layout configuration
-    const COUPLE_SPACING = 120;
-    const GENERATION_SPACING = 210;
-    const SIBLING_SPACING = 80;
+    const COUPLE_SPACING = 150;
+    const GENERATION_SPACING = 250;
+    const SIBLING_SPACING = 200;
 
     const positions = {};
     const couples = [];
@@ -123,7 +123,7 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
 
     roots.forEach(root => {
       const layout = layoutSubtree(root.id, currentX, 0);
-      currentX += layout.width + 120;
+      currentX += layout.width + SIBLING_SPACING * 2;
     });
 
     // Component packing step - find connected components and pack them
