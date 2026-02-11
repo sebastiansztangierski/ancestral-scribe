@@ -14,6 +14,7 @@ export default function Home() {
   const [isSharedView, setIsSharedView] = useState(false);
   const [hoveredEventParticipants, setHoveredEventParticipants] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
+  const [jumpToPersonId, setJumpToPersonId] = useState(null);
 
   // Check for shared tree in URL on mount
   useEffect(() => {
@@ -72,6 +73,16 @@ export default function Home() {
     setSelectedPerson(person);
   };
 
+  const handleSearchSelect = (person) => {
+    setSelectedPerson(person);
+    setJumpToPersonId(person.id);
+    
+    // Clear jump highlight after animation
+    setTimeout(() => {
+      setJumpToPersonId(null);
+    }, 1000);
+  };
+
   return (
     <div className="h-screen w-screen flex bg-stone-950 overflow-hidden">
       {/* Sidebar - only show when tree exists */}
@@ -90,6 +101,7 @@ export default function Home() {
           onGenerateClick={() => setGeneratorOpen(true)}
           onLoadTree={handleLoadTree}
           isSharedView={isSharedView}
+          onSearchSelect={handleSearchSelect}
         />
 
         {tree ? (
@@ -98,6 +110,7 @@ export default function Home() {
             selectedPerson={selectedPerson}
             onSelectPerson={handleSelectPerson}
             hoveredEventParticipants={hoveredEventParticipants}
+            jumpToPersonId={jumpToPersonId}
           />
         ) : (
           <div className="h-full flex flex-col items-center justify-center text-center px-4 pb-20">

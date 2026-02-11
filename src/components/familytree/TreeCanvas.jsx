@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import CharacterNode from './CharacterNode';
 
-export default function TreeCanvas({ tree, selectedPerson, onSelectPerson, hoveredEventParticipants = [] }) {
+export default function TreeCanvas({ tree, selectedPerson, onSelectPerson, hoveredEventParticipants = [], jumpToPersonId = null }) {
   const containerRef = useRef(null);
   const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
   const [isDragging, setIsDragging] = useState(false);
@@ -336,6 +336,21 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson, hover
     }
   }, [selectedPerson?.id]);
 
+  // Jump to person (from search)
+  useEffect(() => {
+    if (jumpToPersonId && containerRef.current && layout) {
+      const pos = layout.positions[jumpToPersonId];
+      if (pos) {
+        const rect = containerRef.current.getBoundingClientRect();
+        setTransform(prev => ({
+          ...prev,
+          x: rect.width / 2 - pos.centerX * prev.scale,
+          y: rect.height / 2 - pos.centerY * prev.scale
+        }));
+      }
+    }
+  }, [jumpToPersonId, layout]);
+
   // Get position helper (merges overrides)
   const getPosition = (personId) => {
     if (!layout) return null;
@@ -538,6 +553,7 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson, hover
             rel => rel.from_id === person.id || rel.to_id === person.id
           );
           const isHighlighted = hoveredEventParticipants.includes(person.id);
+          const isJumpHighlight = jumpToPersonId === person.id;
 
           return (
             <div
@@ -554,6 +570,7 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson, hover
                 onClick={onSelectPerson}
                 hasSpecialRelations={hasSpecialRelations}
                 isHighlighted={isHighlighted}
+                isJumpHighlight={isJumpHighlight}
               />
             </div>
           );
