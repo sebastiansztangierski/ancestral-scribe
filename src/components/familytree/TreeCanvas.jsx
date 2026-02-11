@@ -1,9 +1,11 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import CharacterNode from './CharacterNode';
+import Minimap from './Minimap';
 
 export default function TreeCanvas({ tree, selectedPerson, onSelectPerson, hoveredEventParticipants = [], jumpToPersonId = null, hasInitialized, setHasInitialized }) {
   const containerRef = useRef(null);
   const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
+  const [containerDimensions, setContainerDimensions] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [draggingCouple, setDraggingCouple] = useState(null);
@@ -366,6 +368,8 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson, hover
       const rect = containerRef.current.getBoundingClientRect();
       const { bbox } = layout;
       
+      setContainerDimensions({ width: rect.width, height: rect.height });
+      
       const treeWidth = bbox.maxX - bbox.minX;
       const treeHeight = bbox.maxY - bbox.minY;
       
@@ -380,6 +384,20 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson, hover
       setHasInitialized(true);
     }
   }, [layout, hasInitialized]);
+
+  // Update container dimensions on resize
+  useEffect(() => {
+    if (!containerRef.current) return;
+    
+    const updateDimensions = () => {
+      const rect = containerRef.current.getBoundingClientRect();
+      setContainerDimensions({ width: rect.width, height: rect.height });
+    };
+
+    updateDimensions();
+    window.addEventListener('resize', updateDimensions);
+    return () => window.removeEventListener('resize', updateDimensions);
+  }, []);
 
   // Center on selected person
   useEffect(() => {
@@ -661,6 +679,16 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson, hover
           );
           })}
       </div>
+
+      {/* Minimap */}
+      {layout && (
+        <Minimap
+          layout={layout}
+          transform={transform}
+          containerDimensions={containerDimensions}
+          onPanTo={(x, y) => setTransform(prev => ({ ...prev, x, y }))}
+        />
+      )}
 
       {/* Zoom controls */}
       <div className="absolute bottom-4 right-4 flex flex-col gap-2">
