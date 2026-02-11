@@ -1,7 +1,7 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 
-export default function CharacterNode({ person, isSelected, onClick, hasSpecialRelations, isHighlighted, isJumpHighlight }) {
+export default function CharacterNode({ person, isSelected, onClick, hasSpecialRelations, isHighlighted, isJumpHighlight, hasChildren, isCollapsed, hiddenCount, onToggleCollapse }) {
   return (
     <div
       onClick={() => onClick(person)}
@@ -73,6 +73,30 @@ export default function CharacterNode({ person, isSelected, onClick, hasSpecialR
       {hasSpecialRelations && (
         <div className="absolute -top-1 -right-1 w-4 h-4 bg-purple-500 border-2 border-amber-900 rounded-full flex items-center justify-center shadow-lg">
           <span className="text-[8px]">⚡</span>
+        </div>
+      )}
+
+      {/* Collapse toggle */}
+      {hasChildren && (
+        <button
+          onClick={(e) => onToggleCollapse(person.id, e)}
+          className={cn(
+            "absolute -top-1 -left-1 w-5 h-5 rounded-full flex items-center justify-center shadow-lg transition-all z-20",
+            "border-2 border-amber-900",
+            isCollapsed ? "bg-amber-600 hover:bg-amber-500" : "bg-stone-700 hover:bg-stone-600"
+          )}
+          title={isCollapsed ? `Expand (${hiddenCount} hidden)` : "Collapse branch"}
+        >
+          <span className="text-[10px] font-bold text-white">
+            {isCollapsed ? '+' : '−'}
+          </span>
+        </button>
+      )}
+
+      {/* Hidden count badge */}
+      {isCollapsed && hiddenCount > 0 && (
+        <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 px-1.5 py-0.5 bg-amber-600 border border-amber-900 rounded-full shadow-md">
+          <span className="text-[9px] font-bold text-white">+{hiddenCount}</span>
         </div>
       )}
     </div>

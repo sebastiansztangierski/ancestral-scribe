@@ -9,12 +9,67 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson, hover
   const [draggingCouple, setDraggingCouple] = useState(null);
   const [coupleDragStart, setCoupleDragStart] = useState(null);
   const [positionOverrides, setPositionOverrides] = useState({});
+  const [collapsedPersonIds, setCollapsedPersonIds] = useState(() => {
+    const saved = localStorage.getItem('familyTreeCollapsed');
+    return saved ? new Set(JSON.parse(saved)) : new Set();
+  });
 
   // Layout configuration constants
   const COUPLE_SPACING = 140;
   const GENERATION_SPACING = 280;
   const SIBLING_SPACING = 100;
   const PARENT_TO_CHILD_GAP = 200;
+
+  // Build children map and visibility helpers
+  const { childrenByParent, getDescendants, isHidden, visiblePersons, descendantCounts } = useMemo(() => {
+    if (!tree || !tree.persons) return { childrenByParent: new Map(), getDescendants: () => [], isHidden: () => false, visiblePersons: [], descendantCounts: {} };
+
+    const childrenByParent = new Map();
+    tree.family_edges
+      .filter(e => e.relation_type === 'parent_child')
+      .forEach(edge => {
+        if (!childrenByParent.has(edge.from_id)) {
+          childrenByParent.set(edge.from_id, []);
+        }
+        childrenByParent.get(edge.from_id).push(edge.to_id);
+      });
+
+    const getDescendants = (personId) => {
+      const descendants = [];
+      const queue = [personId];
+      const visited = new Set();
+
+      while (queue.length > 0) {
+        const current = queue.shift();
+        if (visited.has(current)) continue;
+        visited.add(current);
+        
+        const children = childrenByParent.get(current) || [];
+        children.forEach(childId => {
+          descendants.push(childId);
+          queue.push(childId);
+        });
+      }
+
+      return descendants;
+    };
+
+    const hiddenIds = new Set();
+    collapsedPersonIds.forEach(collapsedId => {
+      getDescendants(collapsedId).forEach(descId => hiddenIds.add(descId));
+    });
+
+    const isHidden = (personId) => hiddenIds.has(personId);
+    const visiblePersons = tree.persons.filter(p => !isHidden(p.id));
+
+    const descendantCounts = {};
+    tree.persons.forEach(person => {
+      const descendants = getDescendants(person.id);
+      descendantCounts[person.id] = descendants.length;
+    });
+
+    return { childrenByParent, getDescendants, isHidden, visiblePersons, descendantCounts };
+  }, [tree, collapsedPersonIds]);
 
   // Build family tree layout
   const layout = useMemo(() => {
@@ -50,7 +105,7 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson, hover
     const positions = {};
     const couples = [];
     const personById = {};
-    tree.persons.forEach(p => personById[p.id] = p);
+    visiblePersons.forEach(p => personById[p.id] = p);
 
     // Recursive layout function
     function layoutSubtree(personId, x, y) {
@@ -63,7 +118,7 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson, hover
       if (spouse && !positions[spouse.id]) {
         // This is a couple
         const coupleKey = [personId, spouse.id].sort().join('-');
-        const childIds = Array.from(childrenByCouple.get(coupleKey) || []);
+        const childIds = Array.from(childrenByCouple.get(coupleKey) || []).filter(id => !isHidden(id));
 
         if (childIds.length === 0) {
           // No children - simple couple layout
@@ -119,7 +174,7 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson, hover
     }
 
     // Find root (generation 0)
-    const roots = tree.persons.filter(p => p.generation === 0);
+    const roots = visiblePersons.filter(p => p.generation === 0);
     let currentX = 0;
 
     roots.forEach(root => {
@@ -132,11 +187,13 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson, hover
     
     // Build adjacency map for finding connected components
     const adjacency = new Map();
-    tree.persons.forEach(p => adjacency.set(p.id, new Set()));
+    visiblePersons.forEach(p => adjacency.set(p.id, new Set()));
     
     tree.family_edges.forEach(edge => {
-      adjacency.get(edge.from_id).add(edge.to_id);
-      adjacency.get(edge.to_id).add(edge.from_id);
+      if (!isHidden(edge.from_id) && !isHidden(edge.to_id)) {
+        adjacency.get(edge.from_id)?.add(edge.to_id);
+        adjacency.get(edge.to_id)?.add(edge.from_id);
+      }
     });
 
     // Find all connected components using DFS
@@ -150,7 +207,7 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson, hover
       adjacency.get(personId).forEach(neighbor => dfs(neighbor, component));
     }
 
-    tree.persons.forEach(person => {
+    visiblePersons.forEach(person => {
       if (!visited.has(person.id)) {
         const component = new Set();
         dfs(person.id, component);
@@ -201,7 +258,7 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson, hover
     };
 
     return { positions, couples, bbox };
-  }, [tree, COUPLE_SPACING, GENERATION_SPACING, SIBLING_SPACING]);
+  }, [tree, COUPLE_SPACING, GENERATION_SPACING, SIBLING_SPACING, visiblePersons, isHidden]);
 
   // Handle mouse wheel zoom
   const handleWheel = (e) => {
@@ -355,6 +412,21 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson, hover
   const getPosition = (personId) => {
     if (!layout) return null;
     return positionOverrides[personId] || layout.positions[personId];
+  };
+
+  // Handle collapse toggle
+  const handleToggleCollapse = (personId, e) => {
+    e.stopPropagation();
+    setCollapsedPersonIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(personId)) {
+        newSet.delete(personId);
+      } else {
+        newSet.add(personId);
+      }
+      localStorage.setItem('familyTreeCollapsed', JSON.stringify([...newSet]));
+      return newSet;
+    });
   };
 
   // Render connectors
@@ -545,7 +617,7 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson, hover
         </svg>
 
         {/* Character nodes */}
-        {tree.persons.map((person) => {
+        {visiblePersons.map((person) => {
           const pos = getPosition(person.id);
           if (!pos) return null;
 
@@ -554,6 +626,9 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson, hover
           );
           const isHighlighted = hoveredEventParticipants.includes(person.id);
           const isJumpHighlight = jumpToPersonId === person.id;
+          const hasChildren = (childrenByParent.get(person.id) || []).length > 0;
+          const isCollapsed = collapsedPersonIds.has(person.id);
+          const hiddenCount = isCollapsed ? descendantCounts[person.id] : 0;
 
           return (
             <div
@@ -571,6 +646,10 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson, hover
                 hasSpecialRelations={hasSpecialRelations}
                 isHighlighted={isHighlighted}
                 isJumpHighlight={isJumpHighlight}
+                hasChildren={hasChildren}
+                isCollapsed={isCollapsed}
+                hiddenCount={hiddenCount}
+                onToggleCollapse={handleToggleCollapse}
               />
             </div>
           );
