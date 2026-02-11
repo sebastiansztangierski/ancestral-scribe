@@ -20,7 +20,7 @@ const EVENT_ICONS = {
   festival: '🎭'
 };
 
-export default function Timeline({ events }) {
+export default function Timeline({ events, onEventHover }) {
   // Sort events by year (most recent first for descending, or oldest first)
   const sortedEvents = [...events].sort((a, b) => {
     const yearA = a.era === 'b.c.' ? -a.year : a.year;
@@ -49,7 +49,11 @@ export default function Timeline({ events }) {
             {sortedEvents.map((event, idx) => (
               <div key={event.id} className="relative flex items-start gap-4 group">
                 {/* Icon on timeline track */}
-                <div className="relative z-10 flex-shrink-0 w-10 h-10 rounded-full bg-stone-800 border-2 border-amber-700 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                <div 
+                  className="relative z-10 flex-shrink-0 w-10 h-10 rounded-full bg-stone-800 border-2 border-amber-700 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform cursor-pointer"
+                  onMouseEnter={() => onEventHover(event.participants || [])}
+                  onMouseLeave={() => onEventHover([])}
+                >
                   <span className="text-lg">{EVENT_ICONS[event.iconType] || '⚡'}</span>
                 </div>
 

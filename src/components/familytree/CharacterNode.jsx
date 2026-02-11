@@ -1,13 +1,14 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 
-export default function CharacterNode({ person, isSelected, onClick, hasSpecialRelations }) {
+export default function CharacterNode({ person, isSelected, onClick, hasSpecialRelations, isHighlighted }) {
   return (
     <div
       onClick={() => onClick(person)}
       className={cn(
         "relative cursor-pointer transition-all duration-200 group",
-        isSelected && "scale-110 z-10"
+        isSelected && "scale-110 z-10",
+        isHighlighted && "scale-110 z-10"
       )}
     >
       {/* Ornate frame */}
@@ -15,7 +16,8 @@ export default function CharacterNode({ person, isSelected, onClick, hasSpecialR
         "absolute -inset-2 rounded-lg transition-all duration-200",
         "bg-gradient-to-b from-amber-600 via-amber-700 to-amber-800",
         "shadow-lg",
-        isSelected && "from-amber-500 via-amber-600 to-amber-700 shadow-amber-500/50 shadow-xl"
+        isSelected && "from-amber-500 via-amber-600 to-amber-700 shadow-amber-500/50 shadow-xl",
+        isHighlighted && "from-yellow-400 via-yellow-500 to-amber-600 shadow-yellow-400/70 shadow-2xl animate-pulse"
       )} />
       
       {/* Inner frame decoration */}

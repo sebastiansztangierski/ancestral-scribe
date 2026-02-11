@@ -11,6 +11,7 @@ export default function Home() {
   const [selectedPerson, setSelectedPerson] = useState(null);
   const [generatorOpen, setGeneratorOpen] = useState(false);
   const [isSharedView, setIsSharedView] = useState(false);
+  const [hoveredEventParticipants, setHoveredEventParticipants] = useState([]);
 
   // Check for shared tree in URL on mount
   useEffect(() => {
@@ -94,6 +95,7 @@ export default function Home() {
             tree={tree}
             selectedPerson={selectedPerson}
             onSelectPerson={handleSelectPerson}
+            hoveredEventParticipants={hoveredEventParticipants}
           />
         ) : (
           <div className="h-full flex flex-col items-center justify-center text-center px-4 pb-20">
@@ -118,7 +120,10 @@ export default function Home() {
 
       {/* Timeline - only show when tree exists */}
       {tree && tree.timeline_events && tree.timeline_events.length > 0 && (
-        <Timeline events={tree.timeline_events} />
+        <Timeline 
+          events={tree.timeline_events}
+          onEventHover={setHoveredEventParticipants}
+        />
       )}
 
       {/* Generator Dialog */}

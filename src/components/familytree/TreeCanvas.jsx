@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import CharacterNode from './CharacterNode';
 
-export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
+export default function TreeCanvas({ tree, selectedPerson, onSelectPerson, hoveredEventParticipants = [] }) {
   const containerRef = useRef(null);
   const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
   const [isDragging, setIsDragging] = useState(false);
@@ -537,6 +537,7 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
           const hasSpecialRelations = tree.special_relations?.some(
             rel => rel.from_id === person.id || rel.to_id === person.id
           );
+          const isHighlighted = hoveredEventParticipants.includes(person.id);
 
           return (
             <div
@@ -552,10 +553,11 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson }) {
                 isSelected={selectedPerson?.id === person.id}
                 onClick={onSelectPerson}
                 hasSpecialRelations={hasSpecialRelations}
+                isHighlighted={isHighlighted}
               />
             </div>
           );
-        })}
+          })}
       </div>
 
       {/* Zoom controls */}

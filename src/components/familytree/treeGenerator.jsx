@@ -146,12 +146,23 @@ export const generateFamilyTree = (config) => {
     const year = Math.floor(Math.random() * 500) + 1;
     const era = Math.random() > 0.3 ? 'a.c.' : 'b.c.';
     
+    // Select random participants (1-5 people from the tree)
+    const numParticipants = Math.floor(Math.random() * 5) + 1;
+    const participants = [];
+    for (let p = 0; p < numParticipants && p < persons.length; p++) {
+      const randomPerson = randomFrom(persons.filter(person => !participants.includes(person.id)));
+      if (randomPerson) {
+        participants.push(randomPerson.id);
+      }
+    }
+    
     timelineEvents.push({
       id: generateId(),
       title: eventTemplate.title,
       year,
       era,
-      iconType: eventTemplate.iconType
+      iconType: eventTemplate.iconType,
+      participants
     });
   }
 
