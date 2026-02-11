@@ -1,10 +1,14 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 
 export default function Minimap({ layout, transform, containerDimensions, onPanTo }) {
   const canvasRef = useRef(null);
   const minimapWidth = 200;
   const minimapHeight = 150;
   const padding = 10;
+  
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState(null);
+  const [viewportRect, setViewportRect] = useState(null);
 
   useEffect(() => {
     if (!layout || !canvasRef.current) return;
@@ -104,6 +108,9 @@ export default function Minimap({ layout, transform, containerDimensions, onPanT
       const viewW = toMinimapX(worldBottomRightX) - viewX;
       const viewH = toMinimapY(worldBottomRightY) - viewY;
 
+      // Store viewport rect for drag detection
+      setViewportRect({ x: viewX, y: viewY, width: viewW, height: viewH });
+
       ctx.strokeStyle = 'rgba(59, 130, 246, 0.8)';
       ctx.lineWidth = 2;
       ctx.strokeRect(viewX, viewY, viewW, viewH);
@@ -113,13 +120,92 @@ export default function Minimap({ layout, transform, containerDimensions, onPanT
     }
   }, [layout, transform, containerDimensions]);
 
-  const handleClick = (e) => {
+  const isPointInViewport = (x, y) => {
+    if (!viewportRect) return false;
+    return x >= viewportRect.x && x <= viewportRect.x + viewportRect.width &&
+           y >= viewportRect.y && y <= viewportRect.y + viewportRect.height;
+  };
+
+  const handlePointerDown = (e) => {
     if (!layout || !containerDimensions) return;
 
     const canvas = canvasRef.current;
     const rect = canvas.getBoundingClientRect();
     const clickX = e.clientX - rect.left;
     const clickY = e.clientY - rect.top;
+
+    // Check if clicking on viewport rectangle
+    if (isPointInViewport(clickX, clickY)) {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragging(true);
+      setDragStart({ x: clickX, y: clickY });
+      canvas.setPointerCapture(e.pointerId);
+    }
+  };
+
+  const handlePointerMove = (e) => {
+    if (!isDragging || !dragStart || !layout || !containerDimensions) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    const canvas = canvasRef.current;
+    const rect = canvas.getBoundingClientRect();
+    const currentX = e.clientX - rect.left;
+    const currentY = e.clientY - rect.top;
+
+    const deltaX = currentX - dragStart.x;
+    const deltaY = currentY - dragStart.y;
+
+    // Get tree bounds and minimap scale
+    const positions = Object.values(layout.positions);
+    const xs = positions.map(p => p.x);
+    const ys = positions.map(p => p.y);
+    const minX = Math.min(...xs);
+    const maxX = Math.max(...xs) + 80;
+    const minY = Math.min(...ys);
+    const maxY = Math.max(...ys) + 96;
+
+    const treeWidth = maxX - minX;
+    const treeHeight = maxY - minY;
+
+    const scaleX = (minimapWidth - padding * 2) / treeWidth;
+    const scaleY = (minimapHeight - padding * 2) / treeHeight;
+    const minimapScale = Math.min(scaleX, scaleY);
+
+    // Convert minimap delta to world delta
+    const worldDeltaX = deltaX / minimapScale;
+    const worldDeltaY = deltaY / minimapScale;
+
+    // Update main view pan (move in opposite direction)
+    const newX = transform.x - worldDeltaX * transform.scale;
+    const newY = transform.y - worldDeltaY * transform.scale;
+
+    onPanTo(newX, newY);
+    setDragStart({ x: currentX, y: currentY });
+  };
+
+  const handlePointerUp = (e) => {
+    if (isDragging) {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragging(false);
+      setDragStart(null);
+      canvasRef.current?.releasePointerCapture(e.pointerId);
+    }
+  };
+
+  const handleClick = (e) => {
+    if (isDragging || !layout || !containerDimensions) return;
+
+    const canvas = canvasRef.current;
+    const rect = canvas.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const clickY = e.clientY - rect.top;
+
+    // Don't pan if clicking on viewport rectangle
+    if (isPointInViewport(clickX, clickY)) return;
 
     // Get tree bounds
     const positions = Object.values(layout.positions);
@@ -155,9 +241,17 @@ export default function Minimap({ layout, transform, containerDimensions, onPanT
         ref={canvasRef}
         width={minimapWidth}
         height={minimapHeight}
-        className="cursor-pointer rounded"
+        className="rounded"
+        style={{ 
+          display: 'block',
+          cursor: isDragging ? 'grabbing' : 'pointer',
+          touchAction: 'none'
+        }}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
         onClick={handleClick}
-        style={{ display: 'block' }}
       />
     </div>
   );
