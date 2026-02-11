@@ -8,12 +8,14 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
+import SearchPeople from './SearchPeople';
 
 export default function TreeToolbar({ 
   tree, 
   onGenerateClick, 
   onLoadTree,
-  isSharedView = false
+  isSharedView = false,
+  onSearchSelect
 }) {
   const fileInputRef = useRef(null);
 
@@ -84,16 +86,23 @@ export default function TreeToolbar({
   }
 
   return (
-    <div className="absolute top-4 right-4 z-10 flex gap-2">
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept=".json"
-        onChange={handleLoad}
-        className="hidden"
-      />
+    <div className="absolute top-4 left-4 right-4 z-10 flex items-center justify-between">
+      <div>
+        {tree && tree.persons && (
+          <SearchPeople persons={tree.persons} onSelectPerson={onSearchSelect} />
+        )}
+      </div>
 
-      <Button
+      <div className="flex gap-2">
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".json"
+          onChange={handleLoad}
+          className="hidden"
+        />
+
+        <Button
         onClick={onGenerateClick}
         className="bg-amber-700 hover:bg-amber-600 text-white gap-2"
       >
@@ -133,6 +142,7 @@ export default function TreeToolbar({
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+      </div>
     </div>
   );
 }
