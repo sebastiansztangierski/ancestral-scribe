@@ -70,9 +70,22 @@ export default function SearchPeople({ persons, onSelectPerson }) {
             setQuery(e.target.value);
             setIsOpen(true);
           }}
-          onFocus={() => query && setIsOpen(true)}
+          onFocus={(e) => {
+            if (query) setIsOpen(true);
+            e.currentTarget.style.borderColor = 'rgba(217,119,6,0.7)';
+            e.currentTarget.style.boxShadow = 'inset 0 2px 6px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(120,53,15,0.2), 0 0 8px rgba(217,119,6,0.4)';
+          }}
+          onBlur={(e) => {
+            e.currentTarget.style.borderColor = 'rgba(217,119,6,0.4)';
+            e.currentTarget.style.boxShadow = 'inset 0 2px 6px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(120,53,15,0.2)';
+          }}
           onKeyDown={handleKeyDown}
-          className="w-full h-10 pl-10 pr-10 bg-stone-900 border border-amber-700/40 rounded-full text-amber-100 text-sm placeholder:text-stone-500 focus:outline-none focus:border-amber-600/60 focus:ring-1 focus:ring-amber-600/30 transition-all"
+          className="w-full h-10 pl-10 pr-10 rounded-full text-amber-100 text-sm placeholder:text-stone-500 focus:outline-none transition-all"
+          style={{
+            background: 'linear-gradient(to bottom, rgba(28,25,23,0.95) 0%, rgba(41,37,36,0.95) 50%, rgba(28,25,23,0.95) 100%)',
+            border: '1px solid rgba(217,119,6,0.4)',
+            boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(120,53,15,0.2)'
+          }}
         />
         {query && (
           <button
@@ -92,14 +105,29 @@ export default function SearchPeople({ persons, onSelectPerson }) {
       {isOpen && results.length > 0 && (
         <div
           ref={dropdownRef}
-          className="absolute top-full mt-2 w-full bg-stone-900 border border-amber-700/40 rounded-xl shadow-2xl shadow-black/50 max-h-80 overflow-hidden z-50"
+          className="absolute top-full mt-2 w-full rounded-xl max-h-80 overflow-hidden z-50"
+          style={{
+            background: 'linear-gradient(to bottom, rgba(20,15,10,0.98) 0%, rgba(28,25,23,0.98) 50%, rgba(20,15,10,0.98) 100%)',
+            border: '2px solid rgba(217,119,6,0.4)',
+            boxShadow: 'inset 0 0 0 1px rgba(120,53,15,0.3), 0 8px 24px rgba(0,0,0,0.6)',
+            backdropFilter: 'blur(8px)'
+          }}
         >
           <div className="overflow-y-auto max-h-80">
             {results.map((person) => (
               <button
                 key={person.id}
                 onClick={() => handleSelect(person)}
-                className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-stone-800/80 transition-colors border-b border-stone-800/30 last:border-b-0"
+                className="w-full flex items-center gap-3 px-3 py-2.5 transition-all border-b border-stone-800/30 last:border-b-0"
+                style={{
+                  background: 'transparent'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'linear-gradient(to right, rgba(120,53,15,0.3), rgba(217,119,6,0.15))';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent';
+                }}
               >
                 <img
                   src={person.portrait}

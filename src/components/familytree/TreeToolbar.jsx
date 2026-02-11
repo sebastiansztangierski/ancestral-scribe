@@ -77,7 +77,12 @@ export default function TreeToolbar({
 
   if (isSharedView) {
     return (
-      <div className="absolute top-0 left-0 right-0 z-10 bg-[rgba(10,10,10,0.75)] backdrop-blur-sm border-b border-amber-700/30">
+      <div className="absolute top-0 left-0 right-0 z-10" style={{
+        background: 'linear-gradient(to bottom, rgba(20,15,10,0.95) 0%, rgba(30,22,15,0.95) 50%, rgba(20,15,10,0.95) 100%)',
+        border: '2px solid rgba(217,119,6,0.4)',
+        boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(120,53,15,0.3)',
+        backdropFilter: 'blur(8px)'
+      }}>
         <div className="h-16 flex items-center justify-center px-6">
           <p className="text-amber-100 text-sm font-serif">
             Viewing shared tree — <span className="text-amber-500">View Only</span>
@@ -88,8 +93,14 @@ export default function TreeToolbar({
   }
 
   return (
-    <div className="absolute top-0 left-0 right-0 z-10 bg-[rgba(10,10,10,0.75)] backdrop-blur-sm border-b border-amber-700/30">
-      <div className="h-16 flex items-center justify-between px-6 gap-4">
+    <div className="absolute top-0 left-0 right-0 z-10 gothic-hud-bar">
+      <div className="h-16 flex items-center justify-between px-6 gap-4" style={{
+        background: 'linear-gradient(to bottom, rgba(20,15,10,0.95) 0%, rgba(30,22,15,0.95) 50%, rgba(20,15,10,0.95) 100%)',
+        border: '2px solid rgba(217,119,6,0.4)',
+        boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(120,53,15,0.3)',
+        backdropFilter: 'blur(8px)',
+        position: 'relative'
+      }}>
         <div className="flex-1 max-w-md">
           {tree && tree.persons && (
             <SearchPeople persons={tree.persons} onSelectPerson={onSearchSelect} />
@@ -107,7 +118,27 @@ export default function TreeToolbar({
 
           <Button
             onClick={onGenerateClick}
-            className="h-10 bg-gradient-to-b from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white border border-amber-500/50 shadow-lg shadow-amber-900/30 gap-2"
+            className="h-10 gap-2 gothic-button-primary"
+            style={{
+              background: 'linear-gradient(to bottom, #d97706 0%, #b45309 70%, #92400e 100%)',
+              border: '1px solid rgba(217,119,6,0.6)',
+              boxShadow: 'inset 0 1px 2px rgba(251,191,36,0.3), 0 2px 8px rgba(217,119,6,0.4)',
+              textShadow: '0 1px 2px rgba(0,0,0,0.5)'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.boxShadow = 'inset 0 1px 2px rgba(251,191,36,0.4), 0 0 12px rgba(217,119,6,0.6), 0 2px 8px rgba(217,119,6,0.4)';
+              e.currentTarget.style.borderColor = 'rgba(217,119,6,0.8)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.boxShadow = 'inset 0 1px 2px rgba(251,191,36,0.3), 0 2px 8px rgba(217,119,6,0.4)';
+              e.currentTarget.style.borderColor = 'rgba(217,119,6,0.6)';
+            }}
+            onMouseDown={(e) => {
+              e.currentTarget.style.boxShadow = 'inset 0 2px 4px rgba(0,0,0,0.5)';
+            }}
+            onMouseUp={(e) => {
+              e.currentTarget.style.boxShadow = 'inset 0 1px 2px rgba(251,191,36,0.3), 0 2px 8px rgba(217,119,6,0.4)';
+            }}
           >
             <Sparkles className="w-4 h-4" />
             Generate
@@ -116,23 +147,67 @@ export default function TreeToolbar({
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button 
-                className="h-10 w-10 p-0 bg-gradient-to-b from-stone-700 to-stone-800 hover:from-stone-600 hover:to-stone-700 text-amber-100 border border-amber-700/50 shadow-lg shadow-amber-900/20"
+                className="h-10 w-10 p-0 text-amber-100 gothic-button-menu"
+                style={{
+                  background: 'linear-gradient(to bottom, rgba(28,25,23,0.95) 0%, rgba(41,37,36,0.95) 50%, rgba(28,25,23,0.95) 100%)',
+                  border: '1px solid rgba(217,119,6,0.4)',
+                  boxShadow: 'inset 0 2px 6px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(120,53,15,0.2)'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.boxShadow = 'inset 0 2px 6px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(120,53,15,0.2), 0 0 8px rgba(217,119,6,0.4)';
+                  e.currentTarget.style.borderColor = 'rgba(217,119,6,0.6)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.boxShadow = 'inset 0 2px 6px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(120,53,15,0.2)';
+                  e.currentTarget.style.borderColor = 'rgba(217,119,6,0.4)';
+                }}
+                onMouseDown={(e) => {
+                  e.currentTarget.style.boxShadow = 'inset 0 3px 8px rgba(0,0,0,0.7)';
+                }}
+                onMouseUp={(e) => {
+                  e.currentTarget.style.boxShadow = 'inset 0 2px 6px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(120,53,15,0.2)';
+                }}
               >
                 <Menu className="w-4 h-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="bg-stone-900 border-amber-700/50 shadow-xl">
+            <DropdownMenuContent align="end" className="gothic-dropdown" style={{
+              background: 'linear-gradient(to bottom, rgba(20,15,10,0.98) 0%, rgba(28,25,23,0.98) 50%, rgba(20,15,10,0.98) 100%)',
+              border: '2px solid rgba(217,119,6,0.4)',
+              boxShadow: 'inset 0 0 0 1px rgba(120,53,15,0.3), 0 8px 24px rgba(0,0,0,0.6)',
+              backdropFilter: 'blur(8px)'
+            }}>
               <DropdownMenuItem 
                 onClick={handleSave}
                 disabled={!tree}
-                className="text-amber-100 focus:bg-stone-800 focus:text-amber-100 gap-2"
+                className="text-amber-100 gap-2 cursor-pointer"
+                style={{
+                  background: 'transparent',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'linear-gradient(to right, rgba(120,53,15,0.3), rgba(217,119,6,0.15))';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent';
+                }}
               >
                 <Download className="w-4 h-4" />
                 Save to JSON
               </DropdownMenuItem>
               <DropdownMenuItem 
                 onClick={() => fileInputRef.current?.click()}
-                className="text-amber-100 focus:bg-stone-800 focus:text-amber-100 gap-2"
+                className="text-amber-100 gap-2 cursor-pointer"
+                style={{
+                  background: 'transparent',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'linear-gradient(to right, rgba(120,53,15,0.3), rgba(217,119,6,0.15))';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent';
+                }}
               >
                 <Upload className="w-4 h-4" />
                 Load from JSON
@@ -140,7 +215,17 @@ export default function TreeToolbar({
               <DropdownMenuItem 
                 onClick={handleShare}
                 disabled={!tree}
-                className="text-amber-100 focus:bg-stone-800 focus:text-amber-100 gap-2"
+                className="text-amber-100 gap-2 cursor-pointer"
+                style={{
+                  background: 'transparent',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'linear-gradient(to right, rgba(120,53,15,0.3), rgba(217,119,6,0.15))';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent';
+                }}
               >
                 <Share2 className="w-4 h-4" />
                 Copy Share Link
