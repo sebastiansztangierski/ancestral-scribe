@@ -77,71 +77,77 @@ export default function TreeToolbar({
 
   if (isSharedView) {
     return (
-      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 bg-stone-900/90 backdrop-blur border border-amber-800/50 rounded-lg px-4 py-2">
-        <p className="text-amber-100 text-sm font-serif">
-          Viewing shared tree — <span className="text-amber-500">View Only</span>
-        </p>
+      <div className="absolute top-0 left-0 right-0 z-10 bg-[rgba(10,10,10,0.75)] backdrop-blur-sm border-b border-amber-700/30">
+        <div className="h-16 flex items-center justify-center px-6">
+          <p className="text-amber-100 text-sm font-serif">
+            Viewing shared tree — <span className="text-amber-500">View Only</span>
+          </p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="absolute top-4 left-4 right-4 z-10 flex items-center justify-between">
-      <div>
-        {tree && tree.persons && (
-          <SearchPeople persons={tree.persons} onSelectPerson={onSearchSelect} />
-        )}
-      </div>
+    <div className="absolute top-0 left-0 right-0 z-10 bg-[rgba(10,10,10,0.75)] backdrop-blur-sm border-b border-amber-700/30">
+      <div className="h-16 flex items-center justify-between px-6 gap-4">
+        <div className="flex-1 max-w-md">
+          {tree && tree.persons && (
+            <SearchPeople persons={tree.persons} onSelectPerson={onSearchSelect} />
+          )}
+        </div>
 
-      <div className="flex gap-2">
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".json"
-          onChange={handleLoad}
-          className="hidden"
-        />
+        <div className="flex items-center gap-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json"
+            onChange={handleLoad}
+            className="hidden"
+          />
 
-        <Button
-        onClick={onGenerateClick}
-        className="bg-amber-700 hover:bg-amber-600 text-white gap-2"
-      >
-        <Sparkles className="w-4 h-4" />
-        Generate
-      </Button>
-
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="outline" className="border-amber-800/50 text-amber-100 hover:bg-stone-800">
-            <Menu className="w-4 h-4" />
+          <Button
+            onClick={onGenerateClick}
+            className="h-10 bg-gradient-to-b from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white border border-amber-500/50 shadow-lg shadow-amber-900/30 gap-2"
+          >
+            <Sparkles className="w-4 h-4" />
+            Generate
           </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent className="bg-stone-900 border-amber-800/50">
-          <DropdownMenuItem 
-            onClick={handleSave}
-            disabled={!tree}
-            className="text-amber-100 focus:bg-stone-800 focus:text-amber-100 gap-2"
-          >
-            <Download className="w-4 h-4" />
-            Save to JSON
-          </DropdownMenuItem>
-          <DropdownMenuItem 
-            onClick={() => fileInputRef.current?.click()}
-            className="text-amber-100 focus:bg-stone-800 focus:text-amber-100 gap-2"
-          >
-            <Upload className="w-4 h-4" />
-            Load from JSON
-          </DropdownMenuItem>
-          <DropdownMenuItem 
-            onClick={handleShare}
-            disabled={!tree}
-            className="text-amber-100 focus:bg-stone-800 focus:text-amber-100 gap-2"
-          >
-            <Share2 className="w-4 h-4" />
-            Copy Share Link
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                className="h-10 w-10 p-0 bg-gradient-to-b from-stone-700 to-stone-800 hover:from-stone-600 hover:to-stone-700 text-amber-100 border border-amber-700/50 shadow-lg shadow-amber-900/20"
+              >
+                <Menu className="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="bg-stone-900 border-amber-700/50 shadow-xl">
+              <DropdownMenuItem 
+                onClick={handleSave}
+                disabled={!tree}
+                className="text-amber-100 focus:bg-stone-800 focus:text-amber-100 gap-2"
+              >
+                <Download className="w-4 h-4" />
+                Save to JSON
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={() => fileInputRef.current?.click()}
+                className="text-amber-100 focus:bg-stone-800 focus:text-amber-100 gap-2"
+              >
+                <Upload className="w-4 h-4" />
+                Load from JSON
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={handleShare}
+                disabled={!tree}
+                className="text-amber-100 focus:bg-stone-800 focus:text-amber-100 gap-2"
+              >
+                <Share2 className="w-4 h-4" />
+                Copy Share Link
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
     </div>
   );

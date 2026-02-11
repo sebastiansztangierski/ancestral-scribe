@@ -58,10 +58,10 @@ export default function SearchPeople({ persons, onSelectPerson }) {
   }, []);
 
   return (
-    <div className="relative">
+    <div className="relative w-full">
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-500" />
-        <Input
+        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-amber-600/70" />
+        <input
           ref={inputRef}
           type="text"
           placeholder="Search person..."
@@ -72,7 +72,7 @@ export default function SearchPeople({ persons, onSelectPerson }) {
           }}
           onFocus={() => query && setIsOpen(true)}
           onKeyDown={handleKeyDown}
-          className="pl-9 pr-9 bg-stone-800 border-amber-800/50 text-amber-100 placeholder:text-stone-500 w-64"
+          className="w-full h-10 pl-10 pr-10 bg-stone-900 border border-amber-700/40 rounded-full text-amber-100 text-sm placeholder:text-stone-500 focus:outline-none focus:border-amber-600/60 focus:ring-1 focus:ring-amber-600/30 transition-all"
         />
         {query && (
           <button
@@ -81,9 +81,9 @@ export default function SearchPeople({ persons, onSelectPerson }) {
               setIsOpen(false);
               inputRef.current?.focus();
             }}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-500 hover:text-amber-100"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-500 hover:text-amber-100 transition-colors"
           >
-            <X className="h-4 w-4" />
+            <X className="h-3.5 w-3.5" />
           </button>
         )}
       </div>
@@ -92,28 +92,30 @@ export default function SearchPeople({ persons, onSelectPerson }) {
       {isOpen && results.length > 0 && (
         <div
           ref={dropdownRef}
-          className="absolute top-full mt-2 w-full bg-stone-900 border border-amber-800/50 rounded-lg shadow-xl max-h-80 overflow-y-auto z-50"
+          className="absolute top-full mt-2 w-full bg-stone-900 border border-amber-700/40 rounded-xl shadow-2xl shadow-black/50 max-h-80 overflow-hidden z-50"
         >
-          {results.map((person) => (
-            <button
-              key={person.id}
-              onClick={() => handleSelect(person)}
-              className="w-full flex items-center gap-3 p-2 hover:bg-stone-800 transition-colors border-b border-stone-800/50 last:border-b-0"
-            >
-              <img
-                src={person.portrait}
-                alt={person.name}
-                className={cn(
-                  "w-10 h-10 rounded object-cover border border-amber-700/30",
-                  person.is_unknown && "filter blur-sm grayscale"
-                )}
-              />
-              <div className="flex-1 text-left min-w-0">
-                <p className="text-sm text-amber-100 truncate">{person.name}</p>
-                <p className="text-xs text-stone-500 truncate">{person.title}</p>
-              </div>
-            </button>
-          ))}
+          <div className="overflow-y-auto max-h-80">
+            {results.map((person) => (
+              <button
+                key={person.id}
+                onClick={() => handleSelect(person)}
+                className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-stone-800/80 transition-colors border-b border-stone-800/30 last:border-b-0"
+              >
+                <img
+                  src={person.portrait}
+                  alt={person.name}
+                  className={cn(
+                    "w-9 h-9 rounded-md object-cover border border-amber-700/30",
+                    person.is_unknown && "filter blur-sm grayscale"
+                  )}
+                />
+                <div className="flex-1 text-left min-w-0">
+                  <p className="text-sm text-amber-100 truncate font-medium">{person.name}</p>
+                  <p className="text-xs text-stone-500 truncate">{person.title}</p>
+                </div>
+              </button>
+            ))}
+          </div>
         </div>
       )}
     </div>
