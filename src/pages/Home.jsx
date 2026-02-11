@@ -4,6 +4,7 @@ import TreeCanvas from '@/components/familytree/TreeCanvas';
 import TreeToolbar from '@/components/familytree/TreeToolbar';
 import GeneratorDialog from '@/components/familytree/GeneratorDialog';
 import Timeline from '@/components/familytree/Timeline';
+import EventDetailsModal from '@/components/familytree/EventDetailsModal';
 import { generateFamilyTree } from '@/components/familytree/treeGenerator';
 
 export default function Home() {
@@ -12,6 +13,7 @@ export default function Home() {
   const [generatorOpen, setGeneratorOpen] = useState(false);
   const [isSharedView, setIsSharedView] = useState(false);
   const [hoveredEventParticipants, setHoveredEventParticipants] = useState([]);
+  const [selectedEvent, setSelectedEvent] = useState(null);
 
   // Check for shared tree in URL on mount
   useEffect(() => {
@@ -123,6 +125,17 @@ export default function Home() {
         <Timeline 
           events={tree.timeline_events}
           onEventHover={setHoveredEventParticipants}
+          onEventClick={setSelectedEvent}
+        />
+      )}
+
+      {/* Event Details Modal */}
+      {selectedEvent && (
+        <EventDetailsModal
+          event={selectedEvent}
+          open={!!selectedEvent}
+          onOpenChange={(open) => !open && setSelectedEvent(null)}
+          allPersons={tree?.persons}
         />
       )}
 

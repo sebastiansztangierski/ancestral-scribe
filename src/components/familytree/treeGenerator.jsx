@@ -24,26 +24,26 @@ const MOTTOS = [
 ];
 
 const EVENT_TYPES = [
-  { title: "The Great War", iconType: "war" },
-  { title: "Royal Wedding", iconType: "marriage" },
-  { title: "The Plague Years", iconType: "plague" },
-  { title: "Conquest of the North", iconType: "conquest" },
-  { title: "Betrayal at the Gates", iconType: "betrayal" },
-  { title: "Treaty of Peace", iconType: "treaty" },
-  { title: "The Great Fire", iconType: "fire" },
-  { title: "Founding of the House", iconType: "coronation" },
-  { title: "Victory at Red Fields", iconType: "victory" },
-  { title: "Rebellion Crushed", iconType: "rebellion" },
-  { title: "Discovery of Ancient Ruins", iconType: "discovery" },
-  { title: "The Grand Festival", iconType: "festival" },
-  { title: "Fall of the Old King", iconType: "death" },
-  { title: "Coronation Ceremony", iconType: "coronation" },
-  { title: "Battle of the Rivers", iconType: "war" },
-  { title: "The Dark Winter", iconType: "death" },
-  { title: "Alliance Forged", iconType: "treaty" },
-  { title: "Siege of the Castle", iconType: "conquest" },
-  { title: "Birth of the Heir", iconType: "birth" },
-  { title: "The Dragon's Return", iconType: "fire" }
+  { title: "The Great War", iconType: "war", description: "A devastating conflict that reshaped the political landscape of the realm. Alliances were tested, kingdoms fell, and new powers emerged from the ashes of the old order.\n\nThe war lasted seven long years, claiming thousands of lives and leaving scars that would echo through generations." },
+  { title: "Royal Wedding", iconType: "marriage", description: "A grand ceremony uniting two noble houses in matrimony. The festivities lasted for seven days and seven nights, with lords and ladies from across the realm in attendance.\n\nThis union would forge an alliance that changed the course of history." },
+  { title: "The Plague Years", iconType: "plague", description: "A terrible sickness swept through the land, taking the lives of young and old alike. Entire villages were wiped out, and even the great lords were not spared.\n\nThose who survived would never forget the fear and loss that marked this dark chapter." },
+  { title: "Conquest of the North", iconType: "conquest", description: "A bold campaign to claim the northern territories, long held by rival claimants. The harsh winter and fierce resistance made every mile gained a hard-won victory.\n\nBy the campaign's end, the northern crown was secured, though at great cost." },
+  { title: "Betrayal at the Gates", iconType: "betrayal", description: "A trusted advisor turned traitor, opening the castle gates to enemy forces under cover of darkness. The betrayal cost many lives and nearly brought the house to ruin.\n\nJustice was swift, but the wounds of treachery ran deep." },
+  { title: "Treaty of Peace", iconType: "treaty", description: "After years of bloodshed, the warring factions finally came together to negotiate peace. The treaty was signed at the ancient Hall of Kings, witnessed by all the great houses.\n\nThis fragile peace would hold for a generation." },
+  { title: "The Great Fire", iconType: "fire", description: "A catastrophic blaze consumed the old keep, destroying priceless heirlooms and ancient records. The fire burned for three days, visible from miles away.\n\nFrom the ashes, a grander fortress would rise." },
+  { title: "Founding of the House", iconType: "coronation", description: "The establishment of the noble house, marking the beginning of a legendary lineage. The founder was granted lands and titles in recognition of heroic deeds.\n\nThis day would be celebrated for centuries to come." },
+  { title: "Victory at Red Fields", iconType: "victory", description: "A decisive battle that crushed the enemy's army and secured dominance over the region. The field earned its name from the blood spilled that day.\n\nSongs of this triumph would be sung in halls across the realm." },
+  { title: "Rebellion Crushed", iconType: "rebellion", description: "A dangerous uprising threatened to tear the realm apart, but swift and decisive action put an end to the insurrection. The rebel leaders were brought to justice.\n\nStability was restored, though tensions remained." },
+  { title: "Discovery of Ancient Ruins", iconType: "discovery", description: "Explorers uncovered the remains of a forgotten civilization, revealing artifacts and knowledge lost to time. Scholars flocked to study the mysterious ruins.\n\nThe discoveries would reshape understanding of the ancient world." },
+  { title: "The Grand Festival", iconType: "festival", description: "A magnificent celebration held in honor of the harvest and the gods. Lords and commoners alike gathered for tournaments, feasts, and revelry.\n\nThe festival became an annual tradition, eagerly anticipated by all." },
+  { title: "Fall of the Old King", iconType: "death", description: "The death of the aging monarch marked the end of an era. His passing was mourned throughout the land, and the succession brought both hope and uncertainty.\n\nA new age was about to begin." },
+  { title: "Coronation Ceremony", iconType: "coronation", description: "The crowning of a new ruler in a grand ceremony steeped in tradition and pageantry. Representatives from every corner of the realm attended to pledge their loyalty.\n\nA new reign had begun." },
+  { title: "Battle of the Rivers", iconType: "war", description: "A fierce clash along the riverbanks that determined control of vital trade routes. The waters ran red with blood as armies collided.\n\nThe victor would command the wealth of the rivers for years to come." },
+  { title: "The Dark Winter", iconType: "death", description: "An unusually harsh winter brought famine and suffering. Stores of grain ran low, and many did not survive to see the spring.\n\nIt was a time that tested the resilience of all who endured it." },
+  { title: "Alliance Forged", iconType: "treaty", description: "Two powerful houses joined forces through oath and ceremony, creating an alliance that would shape regional politics for generations.\n\nTogether, they became a force none could challenge." },
+  { title: "Siege of the Castle", iconType: "conquest", description: "Enemy forces laid siege to the ancestral stronghold for months. Hunger and disease plagued the defenders, but they held firm.\n\nWhen relief finally came, the siege was broken and the enemy routed." },
+  { title: "Birth of the Heir", iconType: "birth", description: "The birth of a long-awaited heir brought joy and celebration throughout the realm. The child was blessed by high priests and showered with gifts.\n\nThe future of the house was secured." },
+  { title: "The Dragon's Return", iconType: "fire", description: "Ancient legends spoke of dragons, and on this day those legends became reality. The appearance of the great beast terrified and awed in equal measure.\n\nThe world would never be quite the same again." }
 ];
 
 const BIOGRAPHIES = [
@@ -162,7 +162,9 @@ export const generateFamilyTree = (config) => {
       year,
       era,
       iconType: eventTemplate.iconType,
-      participants
+      participants,
+      descriptionLong: eventTemplate.description,
+      imageUrl: null // Can be populated later or left as placeholder
     });
   }
 

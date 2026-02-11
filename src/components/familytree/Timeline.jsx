@@ -20,7 +20,7 @@ const EVENT_ICONS = {
   festival: '🎭'
 };
 
-export default function Timeline({ events, onEventHover }) {
+export default function Timeline({ events, onEventHover, onEventClick }) {
   // Sort events by year (most recent first for descending, or oldest first)
   const sortedEvents = [...events].sort((a, b) => {
     const yearA = a.era === 'b.c.' ? -a.year : a.year;
@@ -53,13 +53,17 @@ export default function Timeline({ events, onEventHover }) {
                   className="relative z-10 flex-shrink-0 w-10 h-10 rounded-full bg-stone-800 border-2 border-amber-700 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform cursor-pointer"
                   onMouseEnter={() => onEventHover(event.participants || [])}
                   onMouseLeave={() => onEventHover([])}
+                  onClick={() => onEventClick(event)}
                 >
                   <span className="text-lg">{EVENT_ICONS[event.iconType] || '⚡'}</span>
                 </div>
 
                 {/* Event content */}
                 <div className="flex-1 pb-2">
-                  <div className="bg-stone-800/50 rounded-lg p-3 border border-amber-900/30 hover:border-amber-700/50 transition-colors">
+                  <div 
+                    className="bg-stone-800/50 rounded-lg p-3 border border-amber-900/30 hover:border-amber-700/50 transition-colors cursor-pointer"
+                    onClick={() => onEventClick(event)}
+                  >
                     <h3 className="text-sm font-serif text-amber-100 leading-tight mb-1">
                       {event.title}
                     </h3>
