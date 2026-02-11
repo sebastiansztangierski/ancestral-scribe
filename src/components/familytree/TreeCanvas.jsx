@@ -217,7 +217,9 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson, hover
 
     // Compute bounding box for each component
     const componentBounds = components.map(component => {
-      const personIds = Array.from(component);
+      const personIds = Array.from(component).filter(id => positions[id]);
+      if (personIds.length === 0) return null;
+      
       const xs = personIds.map(id => positions[id].x);
       const minX = Math.min(...xs);
       const maxX = Math.max(...xs.map((x, i) => x + 80)); // +80 for node width
@@ -228,7 +230,7 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson, hover
         maxX,
         width: maxX - minX
       };
-    });
+    }).filter(Boolean);
 
     // Sort components by minX
     componentBounds.sort((a, b) => a.minX - b.minX);
