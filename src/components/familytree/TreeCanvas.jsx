@@ -422,17 +422,6 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson, hover
     e.preventDefault();
     e.stopPropagation();
     
-    // Get current screen position of the clicked node
-    const nodeElement = e.target.closest('.absolute');
-    if (!nodeElement || !containerRef.current) return;
-    
-    const nodeRect = nodeElement.getBoundingClientRect();
-    const oldScreenX = nodeRect.left + nodeRect.width / 2;
-    const oldScreenY = nodeRect.top + nodeRect.height / 2;
-    
-    // Store current transform
-    const currentTransform = { ...transform };
-    
     setCollapsedPersonIds(prev => {
       const newSet = new Set(prev);
       if (newSet.has(personId)) {
@@ -442,26 +431,6 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson, hover
       }
       localStorage.setItem('familyTreeCollapsed', JSON.stringify([...newSet]));
       return newSet;
-    });
-    
-    // After layout updates, adjust pan to keep node in same screen position
-    requestAnimationFrame(() => {
-      const nodeElement = document.querySelector(`[data-person-id="${personId}"]`);
-      if (nodeElement && containerRef.current) {
-        const nodeRect = nodeElement.getBoundingClientRect();
-        const newScreenX = nodeRect.left + nodeRect.width / 2;
-        const newScreenY = nodeRect.top + nodeRect.height / 2;
-        
-        const deltaX = oldScreenX - newScreenX;
-        const deltaY = oldScreenY - newScreenY;
-        
-        setTransform(prev => ({
-          ...prev,
-          x: currentTransform.x + deltaX,
-          y: currentTransform.y + deltaY,
-          scale: currentTransform.scale
-        }));
-      }
     });
   };
 
