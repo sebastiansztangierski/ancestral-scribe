@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import CharacterNode from './CharacterNode';
 
-export default function TreeCanvas({ tree, selectedPerson, onSelectPerson, hoveredEventParticipants = [], jumpToPersonId = null }) {
+export default function TreeCanvas({ tree, selectedPerson, onSelectPerson, hoveredEventParticipants = [], jumpToPersonId = null, hasInitialized, setHasInitialized }) {
   const containerRef = useRef(null);
   const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
   const [isDragging, setIsDragging] = useState(false);
@@ -360,9 +360,9 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson, hover
     }
   };
 
-  // Auto-fit and center on load
+  // Auto-fit and center on initial load only
   useEffect(() => {
-    if (layout && containerRef.current) {
+    if (layout && containerRef.current && !hasInitialized) {
       const rect = containerRef.current.getBoundingClientRect();
       const { bbox } = layout;
       
@@ -377,8 +377,9 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson, hover
       const centerY = rect.height / 2 - ((bbox.minY + bbox.maxY) / 2) * fitScale;
       
       setTransform({ x: centerX, y: centerY, scale: fitScale });
+      setHasInitialized(true);
     }
-  }, [layout]);
+  }, [layout, hasInitialized]);
 
   // Center on selected person
   useEffect(() => {
@@ -418,7 +419,20 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson, hover
 
   // Handle collapse toggle
   const handleToggleCollapse = (personId, e) => {
+    e.preventDefault();
     e.stopPropagation();
+    
+    // Get current screen position of the clicked node
+    const nodeElement = e.target.closest('.absolute');
+    if (!nodeElement || !containerRef.current) return;
+    
+    const nodeRect = nodeElement.getBoundingClientRect();
+    const oldScreenX = nodeRect.left + nodeRect.width / 2;
+    const oldScreenY = nodeRect.top + nodeRect.height / 2;
+    
+    // Store current transform
+    const currentTransform = { ...transform };
+    
     setCollapsedPersonIds(prev => {
       const newSet = new Set(prev);
       if (newSet.has(personId)) {
@@ -428,6 +442,26 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson, hover
       }
       localStorage.setItem('familyTreeCollapsed', JSON.stringify([...newSet]));
       return newSet;
+    });
+    
+    // After layout updates, adjust pan to keep node in same screen position
+    requestAnimationFrame(() => {
+      const nodeElement = document.querySelector(`[data-person-id="${personId}"]`);
+      if (nodeElement && containerRef.current) {
+        const nodeRect = nodeElement.getBoundingClientRect();
+        const newScreenX = nodeRect.left + nodeRect.width / 2;
+        const newScreenY = nodeRect.top + nodeRect.height / 2;
+        
+        const deltaX = oldScreenX - newScreenX;
+        const deltaY = oldScreenY - newScreenY;
+        
+        setTransform(prev => ({
+          ...prev,
+          x: currentTransform.x + deltaX,
+          y: currentTransform.y + deltaY,
+          scale: currentTransform.scale
+        }));
+      }
     });
   };
 
@@ -635,6 +669,7 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson, hover
           return (
             <div
               key={person.id}
+              data-person-id={person.id}
               className="absolute"
               style={{
                 left: `${pos.x}px`,

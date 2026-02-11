@@ -15,6 +15,7 @@ export default function Home() {
   const [hoveredEventParticipants, setHoveredEventParticipants] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [jumpToPersonId, setJumpToPersonId] = useState(null);
+  const [hasInitialized, setHasInitialized] = useState(false);
 
   // Check for shared tree in URL on mount
   useEffect(() => {
@@ -47,6 +48,7 @@ export default function Home() {
     setTree(newTree);
     setSelectedPerson(newTree.persons[0]);
     setIsSharedView(false);
+    setHasInitialized(false);
     
     // Clear URL params if any
     if (window.location.search) {
@@ -62,6 +64,7 @@ export default function Home() {
     setTree(loadedTree);
     setSelectedPerson(loadedTree.persons[0] || null);
     setIsSharedView(false);
+    setHasInitialized(false);
     
     // Clear URL params if any
     if (window.location.search) {
@@ -111,6 +114,8 @@ export default function Home() {
             onSelectPerson={handleSelectPerson}
             hoveredEventParticipants={hoveredEventParticipants}
             jumpToPersonId={jumpToPersonId}
+            hasInitialized={hasInitialized}
+            setHasInitialized={setHasInitialized}
           />
         ) : (
           <div className="h-full flex flex-col items-center justify-center text-center px-4 pb-20">
