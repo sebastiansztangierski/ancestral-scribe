@@ -17,6 +17,9 @@ export default function Minimap({ layout, transform, containerDimensions, onPanT
     return saved || 'pinned';
   });
   const [isHovered, setIsHovered] = useState(false);
+  const [pings, setPings] = useState([]);
+  const clickTimerRef = useRef(null);
+  const lastClickRef = useRef(null);
 
   useEffect(() => {
     if (!layout || !canvasRef.current) return;
@@ -269,6 +272,9 @@ export default function Minimap({ layout, transform, containerDimensions, onPanT
       if (hideTimeoutRef.current) {
         clearTimeout(hideTimeoutRef.current);
       }
+      if (clickTimerRef.current) {
+        clearTimeout(clickTimerRef.current);
+      }
     };
   }, []);
 
@@ -294,6 +300,56 @@ export default function Minimap({ layout, transform, containerDimensions, onPanT
     // Don't pan if clicking on viewport rectangle
     if (isPointInViewport(clickX, clickY)) return;
 
+    // Detect double-click
+    const now = Date.now();
+    if (lastClickRef.current && now - lastClickRef.current < 300) {
+      // Double-click detected
+      if (clickTimerRef.current) {
+        clearTimeout(clickTimerRef.current);
+        clickTimerRef.current = null;
+      }
+      handleDoubleClick(clickX, clickY);
+      lastClickRef.current = null;
+      return;
+    }
+
+    // Store click time and delay single-click action
+    lastClickRef.current = now;
+    if (clickTimerRef.current) {
+      clearTimeout(clickTimerRef.current);
+    }
+    
+    clickTimerRef.current = setTimeout(() => {
+      // Single click - perform pan
+      const positions = Object.values(layout.positions);
+      const xs = positions.map(p => p.x);
+      const ys = positions.map(p => p.y);
+      const minX = Math.min(...xs);
+      const maxX = Math.max(...xs) + 80;
+      const minY = Math.min(...ys);
+      const maxY = Math.max(...ys) + 96;
+
+      const treeWidth = maxX - minX;
+      const treeHeight = maxY - minY;
+
+      const scaleX = (minimapWidth - padding * 2) / treeWidth;
+      const scaleY = (minimapHeight - padding * 2) / treeHeight;
+      const scale = Math.min(scaleX, scaleY);
+
+      const worldX = ((clickX - padding) / scale) + minX;
+      const worldY = ((clickY - padding) / scale) + minY;
+
+      const newX = containerDimensions.width / 2 - worldX * transform.scale;
+      const newY = containerDimensions.height / 2 - worldY * transform.scale;
+
+      onPanTo(newX, newY);
+      clickTimerRef.current = null;
+    }, 300);
+  };
+
+  const handleDoubleClick = (clickX, clickY) => {
+    if (!layout || !containerDimensions) return;
+
     // Get tree bounds
     const positions = Object.values(layout.positions);
     const xs = positions.map(p => p.x);
@@ -310,15 +366,22 @@ export default function Minimap({ layout, transform, containerDimensions, onPanT
     const scaleY = (minimapHeight - padding * 2) / treeHeight;
     const scale = Math.min(scaleX, scaleY);
 
-    // Convert minimap click to world coordinates
     const worldX = ((clickX - padding) / scale) + minX;
     const worldY = ((clickY - padding) / scale) + minY;
 
-    // Calculate new transform to center this point
     const newX = containerDimensions.width / 2 - worldX * transform.scale;
     const newY = containerDimensions.height / 2 - worldY * transform.scale;
 
     onPanTo(newX, newY);
+
+    // Add ping animation
+    const pingId = Date.now();
+    setPings(prev => [...prev, { id: pingId, x: clickX, y: clickY }]);
+
+    // Remove ping after animation
+    setTimeout(() => {
+      setPings(prev => prev.filter(p => p.id !== pingId));
+    }, 600);
   };
 
   const isExpanded = mode === 'pinned' || isHovered;
@@ -348,7 +411,7 @@ export default function Minimap({ layout, transform, containerDimensions, onPanT
           )}
         </button>
       </div>
-      <div className="p-2">
+      <div className="p-2 relative">
         <canvas
           ref={canvasRef}
           width={minimapWidth}
@@ -365,6 +428,21 @@ export default function Minimap({ layout, transform, containerDimensions, onPanT
           onPointerCancel={handlePointerUp}
           onClick={handleClick}
         />
+        {/* Ping animations */}
+        {pings.map(ping => (
+          <div
+            key={ping.id}
+            className="absolute pointer-events-none"
+            style={{
+              left: `${ping.x}px`,
+              top: `${ping.y}px`,
+              transform: 'translate(-50%, -50%)'
+            }}
+          >
+            <div className="absolute w-4 h-4 rounded-full border-2 border-blue-400 animate-ping" />
+            <div className="absolute w-2 h-2 rounded-full bg-blue-400 opacity-75" />
+          </div>
+        ))}
       </div>
     </div>
   );
