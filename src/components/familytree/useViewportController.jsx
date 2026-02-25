@@ -121,9 +121,10 @@ export function useViewportController({ initialTransform = { x: 0, y: 0, scale: 
     if (isInertiaActiveRef.current) return;
     
     const speed = Math.sqrt(vx * vx + vy * vy);
-    if (speed < 1) return;
+    const minVelocity = 50; // pixels per second
+    if (speed < minVelocity) return;
     
-    const maxSpeed = 30;
+    const maxSpeed = 3000; // pixels per second
     if (speed > maxSpeed) {
       velocityRef.current = { vx: (vx / speed) * maxSpeed, vy: (vy / speed) * maxSpeed };
     } else {
@@ -131,31 +132,43 @@ export function useViewportController({ initialTransform = { x: 0, y: 0, scale: 
     }
     
     isInertiaActiveRef.current = true;
+    let lastTime = performance.now();
     
-    const animate = () => {
+    const animate = (currentTime) => {
+      const dt = (currentTime - lastTime) / 1000; // seconds
+      lastTime = currentTime;
+      
       const { vx: currentVx, vy: currentVy } = velocityRef.current;
       const currentSpeed = Math.sqrt(currentVx * currentVx + currentVy * currentVy);
       
-      if (currentSpeed < 0.1) {
+      if (currentSpeed < 10) { // pixels per second
         isInertiaActiveRef.current = false;
         return;
       }
       
+      // Apply velocity (convert from px/sec to px/frame)
+      const deltaX = currentVx * dt;
+      const deltaY = currentVy * dt;
+      
       setTargetTransform(prev => ({
         ...prev,
-        x: prev.x + currentVx,
-        y: prev.y + currentVy
+        x: prev.x + deltaX,
+        y: prev.y + deltaY
       }));
       
       setCurrentTransform(prev => ({
         ...prev,
-        x: prev.x + currentVx,
-        y: prev.y + currentVy
+        x: prev.x + deltaX,
+        y: prev.y + deltaY
       }));
       
+      // Frame-rate independent damping (exponential decay)
+      const dampingPerSecond = 0.1; // Lower = slower decay
+      const dampingFactor = Math.pow(dampingPerSecond, dt);
+      
       velocityRef.current = {
-        vx: currentVx * 0.94,
-        vy: currentVy * 0.94
+        vx: currentVx * dampingFactor,
+        vy: currentVy * dampingFactor
       };
       
       inertiaFrameRef.current = requestAnimationFrame(animate);

@@ -285,21 +285,26 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson, hover
   // Handle canvas drag
   const handleMouseDown = (e) => {
     if (e.target === containerRef.current || e.target.closest('.canvas-background')) {
+      e.preventDefault();
       viewport.stopFling();
       
       setIsDragging(true);
       setDragStart({ x: e.clientX - viewport.currentTransform.x, y: e.clientY - viewport.currentTransform.y });
-      dragHistory.current = [{ x: e.clientX, y: e.clientY, time: Date.now() }];
+      dragHistory.current = [{ x: e.clientX, y: e.clientY, time: performance.now() }];
     }
   };
 
   const handleMouseMove = (e) => {
     if (isDragging) {
+      e.preventDefault();
+      
       const newX = e.clientX - dragStart.x;
       const newY = e.clientY - dragStart.y;
       
-      const now = Date.now();
+      const now = performance.now();
       dragHistory.current.push({ x: e.clientX, y: e.clientY, time: now });
+      
+      // Keep only last 100ms of samples
       dragHistory.current = dragHistory.current.filter(p => now - p.time < 100);
       
       viewport.panTo(newX, newY, true);
@@ -309,14 +314,15 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson, hover
   const handleMouseUp = () => {
     if (isDragging) {
       if (dragHistory.current.length >= 2) {
-        const recent = dragHistory.current.slice(-5);
+        const recent = dragHistory.current.slice(-6);
         const oldest = recent[0];
         const newest = recent[recent.length - 1];
-        const dt = newest.time - oldest.time;
+        const dt = (newest.time - oldest.time) / 1000; // convert to seconds
         
         if (dt > 0) {
-          const vx = (newest.x - oldest.x) / dt * 16;
-          const vy = (newest.y - oldest.y) / dt * 16;
+          // Calculate velocity in pixels per second
+          const vx = (newest.x - oldest.x) / dt;
+          const vy = (newest.y - oldest.y) / dt;
           viewport.startFling(vx, vy);
         }
       }
@@ -414,6 +420,7 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson, hover
   // Center on selected person
   useEffect(() => {
     if (selectedPerson && containerRef.current && layout) {
+      viewport.stopFling();
       const pos = layout.positions[selectedPerson.id];
       if (pos) {
         const rect = containerRef.current.getBoundingClientRect();
@@ -427,6 +434,7 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson, hover
   // Jump to person (from search)
   useEffect(() => {
     if (jumpToPersonId && containerRef.current && layout) {
+      viewport.stopFling();
       const pos = layout.positions[jumpToPersonId];
       if (pos) {
         const rect = containerRef.current.getBoundingClientRect();
