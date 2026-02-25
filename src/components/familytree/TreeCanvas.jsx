@@ -302,6 +302,9 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson, hover
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
+      if (inertiaFrameRef.current) {
+        cancelAnimationFrame(inertiaFrameRef.current);
+      }
     };
   }, [targetTransform]);
 
