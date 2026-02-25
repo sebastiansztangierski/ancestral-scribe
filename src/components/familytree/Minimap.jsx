@@ -1,7 +1,10 @@
 import React, { useRef, useEffect, useState } from 'react';
+import { Pin, Eye } from 'lucide-react';
 
 export default function Minimap({ layout, transform, containerDimensions, onPanTo, allPersons, collapsedPersonIds, isHidden, descendantCounts }) {
   const canvasRef = useRef(null);
+  const containerRef = useRef(null);
+  const hideTimeoutRef = useRef(null);
   const minimapWidth = 200;
   const minimapHeight = 150;
   const padding = 10;
@@ -9,6 +12,11 @@ export default function Minimap({ layout, transform, containerDimensions, onPanT
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState(null);
   const [viewportRect, setViewportRect] = useState(null);
+  const [mode, setMode] = useState(() => {
+    const saved = localStorage.getItem('minimapMode');
+    return saved || 'pinned';
+  });
+  const [isHovered, setIsHovered] = useState(false);
 
   useEffect(() => {
     if (!layout || !canvasRef.current) return;
@@ -234,6 +242,47 @@ export default function Minimap({ layout, transform, containerDimensions, onPanT
     }
   };
 
+  const toggleMode = () => {
+    const newMode = mode === 'pinned' ? 'auto' : 'pinned';
+    setMode(newMode);
+    localStorage.setItem('minimapMode', newMode);
+  };
+
+  const handleMouseEnter = () => {
+    if (hideTimeoutRef.current) {
+      clearTimeout(hideTimeoutRef.current);
+      hideTimeoutRef.current = null;
+    }
+    setIsHovered(true);
+  };
+
+  const handleMouseLeave = () => {
+    if (mode === 'auto' && !isDragging) {
+      hideTimeoutRef.current = setTimeout(() => {
+        setIsHovered(false);
+      }, 400);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (hideTimeoutRef.current) {
+        clearTimeout(hideTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Keep hovered state during dragging
+  useEffect(() => {
+    if (isDragging) {
+      if (hideTimeoutRef.current) {
+        clearTimeout(hideTimeoutRef.current);
+        hideTimeoutRef.current = null;
+      }
+      setIsHovered(true);
+    }
+  }, [isDragging]);
+
   const handleClick = (e) => {
     if (isDragging || !layout || !containerDimensions) return;
 
@@ -272,25 +321,51 @@ export default function Minimap({ layout, transform, containerDimensions, onPanT
     onPanTo(newX, newY);
   };
 
+  const isExpanded = mode === 'pinned' || isHovered;
+
   return (
-    <div className="absolute bottom-20 right-4 bg-stone-900/90 border border-amber-800/50 rounded-lg p-2 shadow-lg">
-      <div className="text-xs text-amber-600 mb-1 font-serif">Overview</div>
-      <canvas
-        ref={canvasRef}
-        width={minimapWidth}
-        height={minimapHeight}
-        className="rounded"
-        style={{ 
-          display: 'block',
-          cursor: isDragging ? 'grabbing' : 'pointer',
-          touchAction: 'none'
-        }}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerCancel={handlePointerUp}
-        onClick={handleClick}
-      />
+    <div
+      ref={containerRef}
+      className="absolute bottom-20 right-4 bg-stone-900/90 border border-amber-800/50 rounded-lg shadow-lg transition-all duration-300"
+      style={{
+        transform: isExpanded ? 'translateX(0)' : 'translateX(calc(100% - 40px))',
+        opacity: isExpanded ? 1 : 0.8
+      }}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
+      <div className="flex items-center justify-between px-2 py-1 border-b border-amber-800/30">
+        <div className="text-xs text-amber-600 font-serif">Overview</div>
+        <button
+          onClick={toggleMode}
+          className="p-1 hover:bg-amber-900/30 rounded transition-colors"
+          title={mode === 'pinned' ? 'Enable auto-hide' : 'Pin minimap'}
+        >
+          {mode === 'pinned' ? (
+            <Pin className="w-3 h-3 text-amber-600" />
+          ) : (
+            <Eye className="w-3 h-3 text-amber-600" />
+          )}
+        </button>
+      </div>
+      <div className="p-2">
+        <canvas
+          ref={canvasRef}
+          width={minimapWidth}
+          height={minimapHeight}
+          className="rounded"
+          style={{ 
+            display: 'block',
+            cursor: isDragging ? 'grabbing' : 'pointer',
+            touchAction: 'none'
+          }}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
+          onClick={handleClick}
+        />
+      </div>
     </div>
   );
 }
