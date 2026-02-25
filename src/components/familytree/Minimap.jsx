@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 
-export default function Minimap({ layout, transform, containerDimensions, onPanTo }) {
+export default function Minimap({ layout, transform, containerDimensions, onPanTo, allPersons, collapsedPersonIds, isHidden, descendantCounts }) {
   const canvasRef = useRef(null);
   const minimapWidth = 200;
   const minimapHeight = 150;
@@ -82,15 +82,53 @@ export default function Minimap({ layout, transform, containerDimensions, onPanT
       }
     });
 
-    // Draw nodes as dots
-    ctx.fillStyle = 'rgba(251, 191, 36, 0.8)';
-    positions.forEach(pos => {
-      const x = toMinimapX(pos.centerX);
-      const y = toMinimapY(pos.centerY);
-      ctx.beginPath();
-      ctx.arc(x, y, 2, 0, Math.PI * 2);
-      ctx.fill();
-    });
+    // Draw all nodes (visible and hidden) with different styles
+    if (allPersons) {
+      allPersons.forEach(person => {
+        // Check if this person has a position (might be hidden)
+        const pos = layout.positions[person.id];
+        if (!pos) return; // Skip if no position calculated
+        
+        const x = toMinimapX(pos.centerX);
+        const y = toMinimapY(pos.centerY);
+        const personIsHidden = isHidden && isHidden(person.id);
+        const isCollapsedRoot = collapsedPersonIds && collapsedPersonIds.has(person.id);
+        const hasHiddenDescendants = descendantCounts && descendantCounts[person.id] > 0 && isCollapsedRoot;
+
+        if (personIsHidden) {
+          // Hidden node - dimmed gray
+          ctx.fillStyle = 'rgba(120, 113, 108, 0.3)';
+          ctx.beginPath();
+          ctx.arc(x, y, 2, 0, Math.PI * 2);
+          ctx.fill();
+        } else {
+          // Visible node - normal amber
+          ctx.fillStyle = 'rgba(251, 191, 36, 0.8)';
+          ctx.beginPath();
+          ctx.arc(x, y, 2, 0, Math.PI * 2);
+          ctx.fill();
+
+          // If this visible node is a collapsed root, add indicator ring
+          if (hasHiddenDescendants) {
+            ctx.strokeStyle = 'rgba(59, 130, 246, 0.7)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.arc(x, y, 4, 0, Math.PI * 2);
+            ctx.stroke();
+          }
+        }
+      });
+    } else {
+      // Fallback: draw only visible positions
+      ctx.fillStyle = 'rgba(251, 191, 36, 0.8)';
+      positions.forEach(pos => {
+        const x = toMinimapX(pos.centerX);
+        const y = toMinimapY(pos.centerY);
+        ctx.beginPath();
+        ctx.arc(x, y, 2, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    }
 
     // Draw viewport rectangle
     if (containerDimensions) {

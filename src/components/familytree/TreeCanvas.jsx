@@ -687,6 +687,10 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson, hover
           transform={transform}
           containerDimensions={containerDimensions}
           onPanTo={(x, y) => setTransform(prev => ({ ...prev, x, y }))}
+          allPersons={tree.persons}
+          collapsedPersonIds={collapsedPersonIds}
+          isHidden={isHidden}
+          descendantCounts={descendantCounts}
         />
       )}
 
