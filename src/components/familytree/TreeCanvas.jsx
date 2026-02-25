@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import CharacterNode from './CharacterNode';
-import Minimap from './Minimap';
+import OverviewWidget from './OverviewWidget';
 import { useViewportController } from './useViewportController';
 
 export default function TreeCanvas({ tree, selectedPerson, onSelectPerson, hoveredEventParticipants = [], jumpToPersonId = null, hasInitialized, setHasInitialized }) {
@@ -627,7 +627,8 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson, hover
       onMouseLeave={handleMouseUp}
       style={{
         backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23524a3a' fill-opacity='0.15'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-        backgroundColor: '#1c1917'
+        backgroundColor: '#1c1917',
+        position: 'relative'
       }}
     >
       <div className="canvas-background absolute inset-0" />
@@ -696,35 +697,23 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson, hover
           })}
       </div>
 
-      {/* Minimap */}
+      {/* Overview Widget (Minimap + Zoom) */}
       {layout && (
-        <Minimap
-          layout={layout}
-          transform={viewport.currentTransform}
-          containerDimensions={containerDimensions}
-          onPanTo={(x, y) => viewport.panTo(x, y, true)}
-          allPersons={tree.persons}
-          collapsedPersonIds={collapsedPersonIds}
-          isHidden={isHidden}
-          descendantCounts={descendantCounts}
-        />
+        <div className="absolute bottom-6 right-6 z-10">
+          <OverviewWidget
+            layout={layout}
+            transform={viewport.currentTransform}
+            containerDimensions={containerDimensions}
+            onPanTo={(x, y) => viewport.panTo(x, y, true)}
+            allPersons={tree.persons}
+            collapsedPersonIds={collapsedPersonIds}
+            isHidden={isHidden}
+            descendantCounts={descendantCounts}
+            onZoomIn={() => viewport.setScale(viewport.targetTransform.scale * 1.2)}
+            onZoomOut={() => viewport.setScale(viewport.targetTransform.scale * 0.8)}
+          />
+        </div>
       )}
-
-      {/* Zoom controls */}
-      <div className="absolute bottom-4 right-4 flex flex-col gap-2">
-        <button
-          onClick={() => viewport.setScale(viewport.targetTransform.scale * 1.2)}
-          className="w-10 h-10 rounded bg-stone-800/80 border border-amber-700/50 text-amber-100 hover:bg-stone-700/80 transition-colors font-bold"
-        >
-          +
-        </button>
-        <button
-          onClick={() => viewport.setScale(viewport.targetTransform.scale * 0.8)}
-          className="w-10 h-10 rounded bg-stone-800/80 border border-amber-700/50 text-amber-100 hover:bg-stone-700/80 transition-colors font-bold"
-        >
-          −
-        </button>
-      </div>
     </div>
   );
 }
