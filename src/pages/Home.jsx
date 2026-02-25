@@ -230,6 +230,7 @@ export default function Home() {
             </div>
           </>
         )}
+      </div>
 
       {/* Event Details Modal */}
       {selectedEvent && (
