@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import CharacterNode from './CharacterNode';
 import Minimap from './Minimap';
+import { useViewportController } from './useViewportController';
 
 export default function TreeCanvas({ tree, selectedPerson, onSelectPerson, hoveredEventParticipants = [], jumpToPersonId = null, hasInitialized, setHasInitialized }) {
   const containerRef = useRef(null);
