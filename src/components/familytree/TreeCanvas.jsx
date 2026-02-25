@@ -4,8 +4,7 @@ import Minimap from './Minimap';
 
 export default function TreeCanvas({ tree, selectedPerson, onSelectPerson, hoveredEventParticipants = [], jumpToPersonId = null, hasInitialized, setHasInitialized }) {
   const containerRef = useRef(null);
-  const [targetTransform, setTargetTransform] = useState({ x: 0, y: 0, scale: 1 });
-  const [currentTransform, setCurrentTransform] = useState({ x: 0, y: 0, scale: 1 });
+  const viewport = useViewportController();
   const [containerDimensions, setContainerDimensions] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
@@ -16,12 +15,7 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson, hover
     const saved = localStorage.getItem('familyTreeCollapsed');
     return saved ? new Set(JSON.parse(saved)) : new Set();
   });
-  const animationFrameRef = useRef(null);
-  const inertiaFrameRef = useRef(null);
   const dragHistory = useRef([]);
-  const velocityRef = useRef({ vx: 0, vy: 0 });
-  const isInertiaActiveRef = useRef(false);
-  const prefersReducedMotion = useRef(window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 
   // Layout configuration constants
   const COUPLE_SPACING = 140;
@@ -271,48 +265,12 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson, hover
     return { positions, couples, bbox };
   }, [tree, COUPLE_SPACING, GENERATION_SPACING, SIBLING_SPACING, visiblePersons, isHidden]);
 
-  // Smooth interpolation loop
-  useEffect(() => {
-    const smoothingFactor = prefersReducedMotion.current ? 1 : 0.18;
-    
-    const animate = () => {
-      setCurrentTransform(prev => {
-        const dx = targetTransform.x - prev.x;
-        const dy = targetTransform.y - prev.y;
-        const ds = targetTransform.scale - prev.scale;
-        
-        // Stop animating if close enough
-        if (Math.abs(dx) < 0.1 && Math.abs(dy) < 0.1 && Math.abs(ds) < 0.001) {
-          return targetTransform;
-        }
-        
-        return {
-          x: prev.x + dx * smoothingFactor,
-          y: prev.y + dy * smoothingFactor,
-          scale: prev.scale + ds * smoothingFactor
-        };
-      });
-      
-      animationFrameRef.current = requestAnimationFrame(animate);
-    };
-    
-    animationFrameRef.current = requestAnimationFrame(animate);
-    
-    return () => {
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
-      if (inertiaFrameRef.current) {
-        cancelAnimationFrame(inertiaFrameRef.current);
-      }
-    };
-  }, [targetTransform]);
+
 
   // Handle mouse wheel zoom
   const handleWheel = (e) => {
     e.preventDefault();
     
-    // Normalize wheel delta for consistency
     const normalizedDelta = e.deltaY > 0 ? 1 : -1;
     const zoomStep = 1 + (normalizedDelta * -0.05);
     
@@ -320,36 +278,16 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson, hover
     const mouseX = e.clientX - rect.left;
     const mouseY = e.clientY - rect.top;
     
-    setTargetTransform(prev => {
-      const newScale = Math.min(Math.max(prev.scale * zoomStep, 0.3), 2);
-      
-      // Calculate point under mouse before zoom
-      const worldX = (mouseX - prev.x) / prev.scale;
-      const worldY = (mouseY - prev.y) / prev.scale;
-      
-      // Calculate new position to keep point under mouse
-      const newX = mouseX - worldX * newScale;
-      const newY = mouseY - worldY * newScale;
-      
-      return {
-        x: newX,
-        y: newY,
-        scale: newScale
-      };
-    });
+    viewport.zoomAt(mouseX, mouseY, zoomStep);
   };
 
   // Handle canvas drag
   const handleMouseDown = (e) => {
     if (e.target === containerRef.current || e.target.closest('.canvas-background')) {
-      // Cancel any active inertia
-      if (isInertiaActiveRef.current && inertiaFrameRef.current) {
-        cancelAnimationFrame(inertiaFrameRef.current);
-        isInertiaActiveRef.current = false;
-      }
+      viewport.stopFling();
       
       setIsDragging(true);
-      setDragStart({ x: e.clientX - currentTransform.x, y: e.clientY - currentTransform.y });
+      setDragStart({ x: e.clientX - viewport.currentTransform.x, y: e.clientY - viewport.currentTransform.y });
       dragHistory.current = [{ x: e.clientX, y: e.clientY, time: Date.now() }];
     }
   };
@@ -359,31 +297,16 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson, hover
       const newX = e.clientX - dragStart.x;
       const newY = e.clientY - dragStart.y;
       
-      // Track drag history for velocity calculation
       const now = Date.now();
       dragHistory.current.push({ x: e.clientX, y: e.clientY, time: now });
-      
-      // Keep only recent samples (last 100ms)
       dragHistory.current = dragHistory.current.filter(p => now - p.time < 100);
       
-      setTargetTransform(prev => ({
-        ...prev,
-        x: newX,
-        y: newY
-      }));
-      
-      // For dragging, also update current immediately for responsiveness
-      setCurrentTransform(prev => ({
-        ...prev,
-        x: newX,
-        y: newY
-      }));
+      viewport.panTo(newX, newY, true);
     }
   };
 
   const handleMouseUp = () => {
-    if (isDragging && !prefersReducedMotion.current) {
-      // Calculate velocity from recent drag history
+    if (isDragging) {
       if (dragHistory.current.length >= 2) {
         const recent = dragHistory.current.slice(-5);
         const oldest = recent[0];
@@ -391,22 +314,9 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson, hover
         const dt = newest.time - oldest.time;
         
         if (dt > 0) {
-          const vx = (newest.x - oldest.x) / dt * 16; // Scale to ~60fps
+          const vx = (newest.x - oldest.x) / dt * 16;
           const vy = (newest.y - oldest.y) / dt * 16;
-          
-          // Only start inertia if velocity is significant
-          const speed = Math.sqrt(vx * vx + vy * vy);
-          if (speed > 1) {
-            // Clamp max velocity
-            const maxSpeed = 30;
-            if (speed > maxSpeed) {
-              velocityRef.current = { vx: (vx / speed) * maxSpeed, vy: (vy / speed) * maxSpeed };
-            } else {
-              velocityRef.current = { vx, vy };
-            }
-            
-            startInertia();
-          }
+          viewport.startFling(vx, vy);
         }
       }
     }
@@ -417,50 +327,11 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson, hover
     dragHistory.current = [];
   };
 
-  const startInertia = () => {
-    if (isInertiaActiveRef.current) return;
-    isInertiaActiveRef.current = true;
-    
-    const animate = () => {
-      const { vx, vy } = velocityRef.current;
-      const speed = Math.sqrt(vx * vx + vy * vy);
-      
-      // Stop if velocity is too low
-      if (speed < 0.1) {
-        isInertiaActiveRef.current = false;
-        return;
-      }
-      
-      // Apply velocity to position
-      setTargetTransform(prev => ({
-        ...prev,
-        x: prev.x + vx,
-        y: prev.y + vy
-      }));
-      
-      setCurrentTransform(prev => ({
-        ...prev,
-        x: prev.x + vx,
-        y: prev.y + vy
-      }));
-      
-      // Apply damping (friction)
-      velocityRef.current = {
-        vx: vx * 0.94,
-        vy: vy * 0.94
-      };
-      
-      inertiaFrameRef.current = requestAnimationFrame(animate);
-    };
-    
-    inertiaFrameRef.current = requestAnimationFrame(animate);
-  };
-
   const handleCoupleMouseDown = (e, couple, midX, midY) => {
     e.stopPropagation();
     const rect = containerRef.current.getBoundingClientRect();
-    const worldX = (e.clientX - rect.left - currentTransform.x) / currentTransform.scale;
-    const worldY = (e.clientY - rect.top - currentTransform.y) / currentTransform.scale;
+    const worldX = (e.clientX - rect.left - viewport.currentTransform.x) / viewport.currentTransform.scale;
+    const worldY = (e.clientY - rect.top - viewport.currentTransform.y) / viewport.currentTransform.scale;
     
     setDraggingCouple(couple);
     setCoupleDragStart({ x: worldX - midX, y: worldY - midY });
@@ -469,8 +340,8 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson, hover
   const handleCoupleMouseMove = (e) => {
     if (draggingCouple && coupleDragStart) {
       const rect = containerRef.current.getBoundingClientRect();
-      const worldX = (e.clientX - rect.left - currentTransform.x) / currentTransform.scale;
-      const worldY = (e.clientY - rect.top - currentTransform.y) / currentTransform.scale;
+      const worldX = (e.clientX - rect.left - viewport.currentTransform.x) / viewport.currentTransform.scale;
+      const worldY = (e.clientY - rect.top - viewport.currentTransform.y) / viewport.currentTransform.scale;
       
       const newMidX = worldX - coupleDragStart.x;
       const newMidY = worldY - coupleDragStart.y;
@@ -520,9 +391,7 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson, hover
       const centerX = rect.width / 2 - ((bbox.minX + bbox.maxX) / 2) * fitScale;
       const centerY = rect.height / 2 - ((bbox.minY + bbox.maxY) / 2) * fitScale;
       
-      const initialTransform = { x: centerX, y: centerY, scale: fitScale };
-      setTargetTransform(initialTransform);
-      setCurrentTransform(initialTransform);
+      viewport.setTransform({ x: centerX, y: centerY, scale: fitScale }, true);
       setHasInitialized(true);
     }
   }, [layout, hasInitialized]);
@@ -547,11 +416,9 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson, hover
       const pos = layout.positions[selectedPerson.id];
       if (pos) {
         const rect = containerRef.current.getBoundingClientRect();
-        setTargetTransform(prev => ({
-          ...prev,
-          x: rect.width / 2 - pos.centerX * prev.scale,
-          y: rect.height / 3 - pos.centerY * prev.scale
-        }));
+        const newX = rect.width / 2 - pos.centerX * viewport.targetTransform.scale;
+        const newY = rect.height / 3 - pos.centerY * viewport.targetTransform.scale;
+        viewport.panTo(newX, newY);
       }
     }
   }, [selectedPerson?.id]);
@@ -562,11 +429,9 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson, hover
       const pos = layout.positions[jumpToPersonId];
       if (pos) {
         const rect = containerRef.current.getBoundingClientRect();
-        setTargetTransform(prev => ({
-          ...prev,
-          x: rect.width / 2 - pos.centerX * prev.scale,
-          y: rect.height / 2 - pos.centerY * prev.scale
-        }));
+        const newX = rect.width / 2 - pos.centerX * viewport.targetTransform.scale;
+        const newY = rect.height / 2 - pos.centerY * viewport.targetTransform.scale;
+        viewport.panTo(newX, newY);
       }
     }
   }, [jumpToPersonId, layout]);
@@ -761,7 +626,7 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson, hover
       <div
         className="absolute"
         style={{
-          transform: `translate(${currentTransform.x}px, ${currentTransform.y}px) scale(${currentTransform.scale})`,
+          transform: `translate(${viewport.currentTransform.x}px, ${viewport.currentTransform.y}px) scale(${viewport.currentTransform.scale})`,
           transformOrigin: '0 0'
         }}
       >
@@ -826,12 +691,9 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson, hover
       {layout && (
         <Minimap
           layout={layout}
-          transform={currentTransform}
+          transform={viewport.currentTransform}
           containerDimensions={containerDimensions}
-          onPanTo={(x, y) => {
-            setTargetTransform(prev => ({ ...prev, x, y }));
-            setCurrentTransform(prev => ({ ...prev, x, y }));
-          }}
+          onPanTo={(x, y) => viewport.panTo(x, y, true)}
           allPersons={tree.persons}
           collapsedPersonIds={collapsedPersonIds}
           isHidden={isHidden}
@@ -842,13 +704,13 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson, hover
       {/* Zoom controls */}
       <div className="absolute bottom-4 right-4 flex flex-col gap-2">
         <button
-          onClick={() => setTargetTransform(prev => ({ ...prev, scale: Math.min(prev.scale * 1.2, 2) }))}
+          onClick={() => viewport.setScale(viewport.targetTransform.scale * 1.2)}
           className="w-10 h-10 rounded bg-stone-800/80 border border-amber-700/50 text-amber-100 hover:bg-stone-700/80 transition-colors font-bold"
         >
           +
         </button>
         <button
-          onClick={() => setTargetTransform(prev => ({ ...prev, scale: Math.max(prev.scale * 0.8, 0.3) }))}
+          onClick={() => viewport.setScale(viewport.targetTransform.scale * 0.8)}
           className="w-10 h-10 rounded bg-stone-800/80 border border-amber-700/50 text-amber-100 hover:bg-stone-700/80 transition-colors font-bold"
         >
           −
