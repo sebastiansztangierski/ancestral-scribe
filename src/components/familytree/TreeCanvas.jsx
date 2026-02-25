@@ -17,6 +17,10 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson, hover
     return saved ? new Set(JSON.parse(saved)) : new Set();
   });
   const animationFrameRef = useRef(null);
+  const inertiaFrameRef = useRef(null);
+  const dragHistory = useRef([]);
+  const velocityRef = useRef({ vx: 0, vy: 0 });
+  const isInertiaActiveRef = useRef(false);
   const prefersReducedMotion = useRef(window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 
   // Layout configuration constants
@@ -335,8 +339,15 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson, hover
   // Handle canvas drag
   const handleMouseDown = (e) => {
     if (e.target === containerRef.current || e.target.closest('.canvas-background')) {
+      // Cancel any active inertia
+      if (isInertiaActiveRef.current && inertiaFrameRef.current) {
+        cancelAnimationFrame(inertiaFrameRef.current);
+        isInertiaActiveRef.current = false;
+      }
+      
       setIsDragging(true);
       setDragStart({ x: e.clientX - currentTransform.x, y: e.clientY - currentTransform.y });
+      dragHistory.current = [{ x: e.clientX, y: e.clientY, time: Date.now() }];
     }
   };
 
@@ -344,6 +355,13 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson, hover
     if (isDragging) {
       const newX = e.clientX - dragStart.x;
       const newY = e.clientY - dragStart.y;
+      
+      // Track drag history for velocity calculation
+      const now = Date.now();
+      dragHistory.current.push({ x: e.clientX, y: e.clientY, time: now });
+      
+      // Keep only recent samples (last 100ms)
+      dragHistory.current = dragHistory.current.filter(p => now - p.time < 100);
       
       setTargetTransform(prev => ({
         ...prev,
@@ -361,9 +379,78 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson, hover
   };
 
   const handleMouseUp = () => {
+    if (isDragging && !prefersReducedMotion.current) {
+      // Calculate velocity from recent drag history
+      if (dragHistory.current.length >= 2) {
+        const recent = dragHistory.current.slice(-5);
+        const oldest = recent[0];
+        const newest = recent[recent.length - 1];
+        const dt = newest.time - oldest.time;
+        
+        if (dt > 0) {
+          const vx = (newest.x - oldest.x) / dt * 16; // Scale to ~60fps
+          const vy = (newest.y - oldest.y) / dt * 16;
+          
+          // Only start inertia if velocity is significant
+          const speed = Math.sqrt(vx * vx + vy * vy);
+          if (speed > 1) {
+            // Clamp max velocity
+            const maxSpeed = 30;
+            if (speed > maxSpeed) {
+              velocityRef.current = { vx: (vx / speed) * maxSpeed, vy: (vy / speed) * maxSpeed };
+            } else {
+              velocityRef.current = { vx, vy };
+            }
+            
+            startInertia();
+          }
+        }
+      }
+    }
+    
     setIsDragging(false);
     setDraggingCouple(null);
     setCoupleDragStart(null);
+    dragHistory.current = [];
+  };
+
+  const startInertia = () => {
+    if (isInertiaActiveRef.current) return;
+    isInertiaActiveRef.current = true;
+    
+    const animate = () => {
+      const { vx, vy } = velocityRef.current;
+      const speed = Math.sqrt(vx * vx + vy * vy);
+      
+      // Stop if velocity is too low
+      if (speed < 0.1) {
+        isInertiaActiveRef.current = false;
+        return;
+      }
+      
+      // Apply velocity to position
+      setTargetTransform(prev => ({
+        ...prev,
+        x: prev.x + vx,
+        y: prev.y + vy
+      }));
+      
+      setCurrentTransform(prev => ({
+        ...prev,
+        x: prev.x + vx,
+        y: prev.y + vy
+      }));
+      
+      // Apply damping (friction)
+      velocityRef.current = {
+        vx: vx * 0.94,
+        vy: vy * 0.94
+      };
+      
+      inertiaFrameRef.current = requestAnimationFrame(animate);
+    };
+    
+    inertiaFrameRef.current = requestAnimationFrame(animate);
   };
 
   const handleCoupleMouseDown = (e, couple, midX, midY) => {
