@@ -1,5 +1,4 @@
 import React from 'react';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Scroll } from 'lucide-react';
 
 const EVENT_ICONS = {
@@ -49,8 +48,8 @@ export default function Timeline({ events, onEventHover, onEventClick, mode = 'e
         )}
       </div>
 
-      <ScrollArea className="flex-1 min-h-0">
-        <div className={`relative ${isCompact ? 'p-4 pb-12' : 'p-6 pb-12'}`} style={{ scrollPaddingBottom: '24px' }}>
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain pb-8" style={{ scrollPaddingBottom: '24px' }}>
+        <div className={`relative ${isCompact ? 'p-4' : 'p-6'}`}>
           {/* Vertical timeline track */}
           <div className={`absolute ${isCompact ? 'left-1/2 -translate-x-1/2' : 'left-12'} top-0 bottom-0 w-1 bg-gradient-to-b from-amber-700 via-amber-800 to-amber-900`} />
           
@@ -88,7 +87,7 @@ export default function Timeline({ events, onEventHover, onEventClick, mode = 'e
             ))}
           </div>
         </div>
-      </ScrollArea>
+      </div>
 
       {/* Footer stats - only in expanded mode */}
       {!isCompact && (
