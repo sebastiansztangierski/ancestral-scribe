@@ -10,7 +10,8 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 const TAB_W = 44;
 const LEFT_W = 340;
-const RIGHT_W = 340;
+const RIGHT_EXPANDED_W = 340;
+const RIGHT_COMPACT_W = 96;
 
 export default function Home() {
   const [tree, setTree] = useState(null);
@@ -27,9 +28,9 @@ export default function Home() {
     return saved === 'true';
   });
   
-  const [rightCollapsed, setRightCollapsed] = useState(() => {
-    const saved = localStorage.getItem('rightPanelCollapsed');
-    return saved === 'true';
+  const [rightMode, setRightMode] = useState(() => {
+    const saved = localStorage.getItem('rightPanelMode');
+    return saved || 'compact'; // default to compact
   });
 
   // Check for shared tree in URL on mount
@@ -110,9 +111,9 @@ export default function Home() {
   };
 
   const toggleRightPanel = () => {
-    setRightCollapsed(prev => {
-      const newValue = !prev;
-      localStorage.setItem('rightPanelCollapsed', String(newValue));
+    setRightMode(prev => {
+      const newValue = prev === 'compact' ? 'expanded' : 'compact';
+      localStorage.setItem('rightPanelMode', newValue);
       return newValue;
     });
   };
@@ -120,7 +121,9 @@ export default function Home() {
   const hasTimeline = tree && tree.timeline_events && tree.timeline_events.length > 0;
   
   const leftColWidth = tree ? (leftCollapsed ? TAB_W : LEFT_W) : 0;
-  const rightColWidth = hasTimeline ? (rightCollapsed ? TAB_W : RIGHT_W) : 0;
+  const rightColWidth = hasTimeline 
+    ? (rightMode === 'expanded' ? RIGHT_EXPANDED_W : RIGHT_COMPACT_W) 
+    : 0;
 
   return (
     <div 
@@ -191,15 +194,14 @@ export default function Home() {
       {/* Right Timeline Column */}
       {hasTimeline && (
         <div className="h-full overflow-visible">
-          {!rightCollapsed && (
-            <div className="w-full h-full overflow-auto">
-              <Timeline 
-                events={tree.timeline_events}
-                onEventHover={setHoveredEventParticipants}
-                onEventClick={setSelectedEvent}
-              />
-            </div>
-          )}
+          <div className="w-full h-full overflow-auto">
+            <Timeline 
+              events={tree.timeline_events}
+              onEventHover={setHoveredEventParticipants}
+              onEventClick={setSelectedEvent}
+              mode={rightMode}
+            />
+          </div>
         </div>
       )}
 
@@ -268,7 +270,7 @@ export default function Home() {
                 pointerEvents: 'auto'
               }}
             >
-              {rightCollapsed ? (
+              {rightMode === 'compact' ? (
                 <ChevronLeft className="w-4 h-4 text-amber-200" />
               ) : (
                 <ChevronRight className="w-4 h-4 text-amber-200" />
