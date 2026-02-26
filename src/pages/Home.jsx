@@ -5,8 +5,12 @@ import TreeToolbar from '@/components/familytree/TreeToolbar';
 import GeneratorDialog from '@/components/familytree/GeneratorDialog';
 import Timeline from '@/components/familytree/Timeline';
 import EventDetailsModal from '@/components/familytree/EventDetailsModal';
+import PanelHandle from '@/components/familytree/PanelHandle';
 import { generateFamilyTree } from '@/components/familytree/treeGenerator';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+
+const LEFT_WIDTH = 360;
+const RIGHT_WIDTH = 340;
+const TAB_WIDTH = 44;
 
 export default function Home() {
   const [tree, setTree] = useState(null);
@@ -117,41 +121,42 @@ export default function Home() {
   
   const hasTimeline = tree && tree.timeline_events && tree.timeline_events.length > 0;
 
+  const leftColumnWidth = tree ? (leftPanelCollapsed ? TAB_WIDTH : LEFT_WIDTH) : 0;
+  const rightColumnWidth = hasTimeline ? (rightPanelCollapsed ? TAB_WIDTH : RIGHT_WIDTH) : 0;
+
   return (
-    <div className="h-screen w-screen flex bg-stone-950 overflow-hidden">
-      {/* Left Sidebar - only show when tree exists */}
+    <div 
+      className="h-screen w-screen bg-stone-950 overflow-hidden grid"
+      style={{
+        gridTemplateColumns: tree
+          ? `${leftColumnWidth}px 1fr ${rightColumnWidth}px`
+          : '1fr'
+      }}
+    >
+      {/* Left Sidebar Panel */}
       {tree && (
-        <div 
-          className="relative transition-all duration-300 ease-in-out"
-          style={{ width: leftPanelCollapsed ? '40px' : '360px' }}
-        >
-          {!leftPanelCollapsed && (
-            <div className="h-full w-[360px]">
-              <Sidebar
-                tree={tree}
-                selectedPerson={selectedPerson}
-                onSelectPerson={handleSelectPerson}
-              />
-            </div>
-          )}
-          
-          {/* Collapse/Expand Button */}
-          <button
-            onClick={toggleLeftPanel}
-            className="absolute top-1/2 -translate-y-1/2 right-0 w-10 h-20 bg-amber-800/50 hover:bg-amber-700/70 backdrop-blur-sm border border-amber-600/30 flex items-center justify-center transition-colors z-20"
-            style={{ borderTopRightRadius: '8px', borderBottomRightRadius: '8px' }}
+        <div className="relative overflow-hidden transition-all duration-300 ease-in-out">
+          <div 
+            className={`h-full ${leftPanelCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+            style={{ width: LEFT_WIDTH }}
           >
-            {leftPanelCollapsed ? (
-              <ChevronRight className="w-5 h-5 text-amber-200" />
-            ) : (
-              <ChevronLeft className="w-5 h-5 text-amber-200" />
-            )}
-          </button>
+            <Sidebar
+              tree={tree}
+              selectedPerson={selectedPerson}
+              onSelectPerson={handleSelectPerson}
+            />
+          </div>
+          
+          <PanelHandle 
+            side="left" 
+            collapsed={leftPanelCollapsed} 
+            onToggle={toggleLeftPanel} 
+          />
         </div>
       )}
 
       {/* Main Canvas Area */}
-      <div className="flex-1 relative">
+      <div className="relative overflow-hidden">
         <TreeToolbar
           tree={tree}
           onGenerateClick={() => setGeneratorOpen(true)}
@@ -191,34 +196,25 @@ export default function Home() {
         )}
       </div>
 
-      {/* Right Timeline - only show when tree exists */}
+      {/* Right Timeline Panel */}
       {hasTimeline && (
-        <div 
-          className="relative transition-all duration-300 ease-in-out"
-          style={{ width: rightPanelCollapsed ? '40px' : '340px' }}
-        >
-          {/* Collapse/Expand Button */}
-          <button
-            onClick={toggleRightPanel}
-            className="absolute top-1/2 -translate-y-1/2 left-0 w-10 h-20 bg-amber-800/50 hover:bg-amber-700/70 backdrop-blur-sm border border-amber-600/30 flex items-center justify-center transition-colors z-20"
-            style={{ borderTopLeftRadius: '8px', borderBottomLeftRadius: '8px' }}
+        <div className="relative overflow-hidden transition-all duration-300 ease-in-out">
+          <div 
+            className={`h-full ${rightPanelCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+            style={{ width: RIGHT_WIDTH }}
           >
-            {rightPanelCollapsed ? (
-              <ChevronLeft className="w-5 h-5 text-amber-200" />
-            ) : (
-              <ChevronRight className="w-5 h-5 text-amber-200" />
-            )}
-          </button>
-
-          {!rightPanelCollapsed && (
-            <div className="h-full w-[340px]">
-              <Timeline 
-                events={tree.timeline_events}
-                onEventHover={setHoveredEventParticipants}
-                onEventClick={setSelectedEvent}
-              />
-            </div>
-          )}
+            <Timeline 
+              events={tree.timeline_events}
+              onEventHover={setHoveredEventParticipants}
+              onEventClick={setSelectedEvent}
+            />
+          </div>
+          
+          <PanelHandle 
+            side="right" 
+            collapsed={rightPanelCollapsed} 
+            onToggle={toggleRightPanel} 
+          />
         </div>
       )}
 
