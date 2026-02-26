@@ -1,6 +1,6 @@
 import React from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
+import { Scroll } from 'lucide-react';
 
 const EVENT_ICONS = {
   birth: '👑',
@@ -20,7 +20,7 @@ const EVENT_ICONS = {
   festival: '🎭'
 };
 
-export default function Timeline({ events, onEventHover, onEventClick }) {
+export default function Timeline({ events, onEventHover, onEventClick, mode = 'expanded' }) {
   // Sort events by year (most recent first for descending, or oldest first)
   const sortedEvents = [...events].sort((a, b) => {
     const yearA = a.era === 'b.c.' ? -a.year : a.year;
