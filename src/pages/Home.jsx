@@ -6,6 +6,11 @@ import GeneratorDialog from '@/components/familytree/GeneratorDialog';
 import Timeline from '@/components/familytree/Timeline';
 import EventDetailsModal from '@/components/familytree/EventDetailsModal';
 import { generateFamilyTree } from '@/components/familytree/treeGenerator';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+
+const TAB_W = 44;
+const LEFT_W = 340;
+const RIGHT_W = 340;
 
 export default function Home() {
   const [tree, setTree] = useState(null);
@@ -16,6 +21,16 @@ export default function Home() {
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [jumpToPersonId, setJumpToPersonId] = useState(null);
   const [hasInitialized, setHasInitialized] = useState(false);
+  
+  const [leftCollapsed, setLeftCollapsed] = useState(() => {
+    const saved = localStorage.getItem('leftPanelCollapsed');
+    return saved === 'true';
+  });
+  
+  const [rightCollapsed, setRightCollapsed] = useState(() => {
+    const saved = localStorage.getItem('rightPanelCollapsed');
+    return saved === 'true';
+  });
 
   // Check for shared tree in URL on mount
   useEffect(() => {
@@ -86,19 +101,70 @@ export default function Home() {
     }, 1000);
   };
 
+  const toggleLeftPanel = () => {
+    setLeftCollapsed(prev => {
+      const newValue = !prev;
+      localStorage.setItem('leftPanelCollapsed', String(newValue));
+      return newValue;
+    });
+  };
+
+  const toggleRightPanel = () => {
+    setRightCollapsed(prev => {
+      const newValue = !prev;
+      localStorage.setItem('rightPanelCollapsed', String(newValue));
+      return newValue;
+    });
+  };
+
+  const hasTimeline = tree && tree.timeline_events && tree.timeline_events.length > 0;
+  
+  const leftColWidth = tree ? (leftCollapsed ? TAB_W : LEFT_W) : 0;
+  const rightColWidth = hasTimeline ? (rightCollapsed ? TAB_W : RIGHT_W) : 0;
+
   return (
-    <div className="h-screen w-screen flex bg-stone-950 overflow-hidden">
-      {/* Sidebar - only show when tree exists */}
+    <div 
+      className="h-screen w-screen bg-stone-950 overflow-hidden"
+      style={{
+        display: 'grid',
+        gridTemplateColumns: tree 
+          ? `${leftColWidth}px 1fr ${rightColWidth}px`
+          : '1fr'
+      }}
+    >
+      {/* Left Sidebar Column */}
       {tree && (
-        <Sidebar
-          tree={tree}
-          selectedPerson={selectedPerson}
-          onSelectPerson={handleSelectPerson}
-        />
+        <div className="relative overflow-visible h-full">
+          {!leftCollapsed && (
+            <div className="w-full h-full overflow-auto">
+              <Sidebar
+                tree={tree}
+                selectedPerson={selectedPerson}
+                onSelectPerson={handleSelectPerson}
+              />
+            </div>
+          )}
+          
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              toggleLeftPanel();
+            }}
+            className="absolute top-1/2 -translate-y-1/2 w-11 h-20 bg-amber-800/70 hover:bg-amber-700/90 backdrop-blur-sm border border-amber-600/50 flex items-center justify-center transition-all rounded-xl shadow-lg z-50"
+            style={{ right: '-10px' }}
+          >
+            {leftCollapsed ? (
+              <ChevronRight className="w-5 h-5 text-amber-100" />
+            ) : (
+              <ChevronLeft className="w-5 h-5 text-amber-100" />
+            )}
+          </button>
+        </div>
       )}
 
       {/* Main Canvas Area */}
-      <div className="flex-1 relative">
+      <div className="relative overflow-hidden">
         <TreeToolbar
           tree={tree}
           onGenerateClick={() => setGeneratorOpen(true)}
@@ -138,13 +204,35 @@ export default function Home() {
         )}
       </div>
 
-      {/* Timeline - only show when tree exists */}
-      {tree && tree.timeline_events && tree.timeline_events.length > 0 && (
-        <Timeline 
-          events={tree.timeline_events}
-          onEventHover={setHoveredEventParticipants}
-          onEventClick={setSelectedEvent}
-        />
+      {/* Right Timeline Column */}
+      {hasTimeline && (
+        <div className="relative overflow-visible h-full">
+          {!rightCollapsed && (
+            <div className="w-full h-full overflow-auto">
+              <Timeline 
+                events={tree.timeline_events}
+                onEventHover={setHoveredEventParticipants}
+                onEventClick={setSelectedEvent}
+              />
+            </div>
+          )}
+          
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              toggleRightPanel();
+            }}
+            className="absolute top-1/2 -translate-y-1/2 w-11 h-20 bg-amber-800/70 hover:bg-amber-700/90 backdrop-blur-sm border border-amber-600/50 flex items-center justify-center transition-all rounded-xl shadow-lg z-50"
+            style={{ left: '-10px' }}
+          >
+            {rightCollapsed ? (
+              <ChevronLeft className="w-5 h-5 text-amber-100" />
+            ) : (
+              <ChevronRight className="w-5 h-5 text-amber-100" />
+            )}
+          </button>
+        </div>
       )}
 
       {/* Event Details Modal */}

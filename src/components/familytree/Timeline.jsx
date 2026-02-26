@@ -29,7 +29,7 @@ export default function Timeline({ events, onEventHover, onEventClick }) {
   });
 
   return (
-    <div className="w-80 h-full bg-stone-900 border-l border-amber-800/50 flex flex-col">
+    <div className="w-full h-full bg-stone-900 border-l border-amber-800/50 flex flex-col">
       {/* Header */}
       <div className="p-6 bg-gradient-to-b from-stone-800 to-stone-900 border-b border-amber-800/30">
         <h2 className="text-xl font-serif text-amber-100 flex items-center gap-2">

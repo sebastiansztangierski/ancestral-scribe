@@ -33,7 +33,7 @@ export default function Sidebar({ tree, selectedPerson, onSelectPerson }) {
   const relations = selectedPerson ? getRelationsForPerson(selectedPerson.id) : [];
 
   return (
-    <div className="w-80 h-full bg-stone-900 border-r border-amber-800/50 flex flex-col">
+    <div className="w-full h-full bg-stone-900 border-r border-amber-800/50 flex flex-col">
       {/* House Header */}
       <div className="p-6 bg-gradient-to-b from-stone-800 to-stone-900 border-b border-amber-800/30">
         <div className="flex items-center gap-4">
