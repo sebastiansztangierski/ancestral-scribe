@@ -193,15 +193,13 @@ export default function Home() {
 
       {/* Right Timeline Column */}
       {hasTimeline && (
-        <div className="h-full overflow-visible">
-          <div className="w-full h-full overflow-auto">
-            <Timeline 
-              events={tree.timeline_events}
-              onEventHover={setHoveredEventParticipants}
-              onEventClick={setSelectedEvent}
-              mode={rightMode}
-            />
-          </div>
+        <div className="h-full">
+          <Timeline 
+            events={tree.timeline_events}
+            onEventHover={setHoveredEventParticipants}
+            onEventClick={setSelectedEvent}
+            mode={rightMode}
+          />
         </div>
       )}
 
