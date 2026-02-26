@@ -86,62 +86,19 @@ export default function Home() {
     }, 1000);
   };
 
-  const toggleLeftPanel = (e) => {
-    e.stopPropagation();
-    setLeftPanelCollapsed(prev => {
-      const newValue = !prev;
-      localStorage.setItem('leftPanelCollapsed', String(newValue));
-      return newValue;
-    });
-  };
-
-  const toggleRightPanel = (e) => {
-    e.stopPropagation();
-    setRightPanelCollapsed(prev => {
-      const newValue = !prev;
-      localStorage.setItem('rightPanelCollapsed', String(newValue));
-      return newValue;
-    });
-  };
-  
-  const hasTimeline = tree && tree.timeline_events && tree.timeline_events.length > 0;
-
-  const leftColumnWidth = tree ? (leftPanelCollapsed ? TAB_WIDTH : LEFT_WIDTH) : 0;
-  const rightColumnWidth = hasTimeline ? (rightPanelCollapsed ? TAB_WIDTH : RIGHT_WIDTH) : 0;
-
   return (
-    <div 
-      className="h-screen w-screen bg-stone-950 overflow-hidden grid"
-      style={{
-        gridTemplateColumns: tree
-          ? `${leftColumnWidth}px 1fr ${rightColumnWidth}px`
-          : '1fr'
-      }}
-    >
-      {/* Left Sidebar Panel */}
+    <div className="h-screen w-screen flex bg-stone-950 overflow-hidden">
+      {/* Sidebar - only show when tree exists */}
       {tree && (
-        <div className="relative overflow-hidden transition-all duration-300 ease-in-out">
-          <div 
-            className={`h-full ${leftPanelCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
-            style={{ width: LEFT_WIDTH }}
-          >
-            <Sidebar
-              tree={tree}
-              selectedPerson={selectedPerson}
-              onSelectPerson={handleSelectPerson}
-            />
-          </div>
-          
-          <PanelHandle 
-            side="left" 
-            collapsed={leftPanelCollapsed} 
-            onToggle={toggleLeftPanel} 
-          />
-        </div>
+        <Sidebar
+          tree={tree}
+          selectedPerson={selectedPerson}
+          onSelectPerson={handleSelectPerson}
+        />
       )}
 
       {/* Main Canvas Area */}
-      <div className="relative overflow-hidden">
+      <div className="flex-1 relative">
         <TreeToolbar
           tree={tree}
           onGenerateClick={() => setGeneratorOpen(true)}
@@ -181,26 +138,13 @@ export default function Home() {
         )}
       </div>
 
-      {/* Right Timeline Panel */}
-      {hasTimeline && (
-        <div className="relative overflow-hidden transition-all duration-300 ease-in-out">
-          <div 
-            className={`h-full ${rightPanelCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
-            style={{ width: RIGHT_WIDTH }}
-          >
-            <Timeline 
-              events={tree.timeline_events}
-              onEventHover={setHoveredEventParticipants}
-              onEventClick={setSelectedEvent}
-            />
-          </div>
-          
-          <PanelHandle 
-            side="right" 
-            collapsed={rightPanelCollapsed} 
-            onToggle={toggleRightPanel} 
-          />
-        </div>
+      {/* Timeline - only show when tree exists */}
+      {tree && tree.timeline_events && tree.timeline_events.length > 0 && (
+        <Timeline 
+          events={tree.timeline_events}
+          onEventHover={setHoveredEventParticipants}
+          onEventClick={setSelectedEvent}
+        />
       )}
 
       {/* Event Details Modal */}
