@@ -30,7 +30,7 @@ export default function Timeline({ events, onEventHover, onEventClick, mode = 'e
   const isCompact = mode === 'compact';
 
   return (
-    <div className="w-full h-full min-h-0 flex flex-col overflow-hidden bg-stone-900 border-l border-amber-800/50">
+    <div className="w-full h-screen flex flex-col min-h-0 overflow-hidden bg-stone-900 border-l border-amber-800/50">
       {/* Header */}
       <div className={`flex-none bg-gradient-to-b from-stone-800 to-stone-900 border-b border-amber-800/30 ${isCompact ? 'p-4 flex justify-center' : 'p-6'}`}>
         {isCompact ? (
@@ -48,7 +48,12 @@ export default function Timeline({ events, onEventHover, onEventClick, mode = 'e
         )}
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain" style={{ scrollPaddingBottom: '24px' }}>
+      <div 
+        className="flex-1 min-h-0 overflow-y-auto overscroll-contain" 
+        style={{ scrollPaddingBottom: '24px' }}
+        data-scroll-panel="timeline"
+        onWheel={(e) => e.stopPropagation()}
+      >
         <div className={`relative ${isCompact ? 'p-4 pb-12' : 'p-6 pb-12'}`}>
           {/* Vertical timeline track */}
           <div className={`absolute ${isCompact ? 'left-1/2 -translate-x-1/2' : 'left-12'} top-0 bottom-0 w-1 bg-gradient-to-b from-amber-700 via-amber-800 to-amber-900`} />

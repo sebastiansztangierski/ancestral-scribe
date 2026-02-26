@@ -270,6 +270,9 @@ export default function TreeCanvas({ tree, selectedPerson, onSelectPerson, hover
 
   // Handle mouse wheel zoom
   const handleWheel = (e) => {
+    // Don't zoom if scrolling over a scroll panel (timeline, sidebar, etc.)
+    if (e.target.closest('[data-scroll-panel]')) return;
+    
     e.preventDefault();
     
     const normalizedDelta = e.deltaY > 0 ? 1 : -1;
