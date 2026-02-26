@@ -6,6 +6,7 @@ import GeneratorDialog from '@/components/familytree/GeneratorDialog';
 import Timeline from '@/components/familytree/Timeline';
 import EventDetailsModal from '@/components/familytree/EventDetailsModal';
 import { generateFamilyTree } from '@/components/familytree/treeGenerator';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 export default function Home() {
   const [tree, setTree] = useState(null);
@@ -16,6 +17,16 @@ export default function Home() {
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [jumpToPersonId, setJumpToPersonId] = useState(null);
   const [hasInitialized, setHasInitialized] = useState(false);
+  
+  // Panel collapse state
+  const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(() => {
+    const saved = localStorage.getItem('leftPanelCollapsed');
+    return saved === 'true';
+  });
+  const [rightPanelCollapsed, setRightPanelCollapsed] = useState(() => {
+    const saved = localStorage.getItem('rightPanelCollapsed');
+    return saved === 'true';
+  });
 
   // Check for shared tree in URL on mount
   useEffect(() => {
@@ -85,16 +96,58 @@ export default function Home() {
       setJumpToPersonId(null);
     }, 1000);
   };
+
+  const toggleLeftPanel = (e) => {
+    e.stopPropagation();
+    setLeftPanelCollapsed(prev => {
+      const newValue = !prev;
+      localStorage.setItem('leftPanelCollapsed', String(newValue));
+      return newValue;
+    });
+  };
+
+  const toggleRightPanel = (e) => {
+    e.stopPropagation();
+    setRightPanelCollapsed(prev => {
+      const newValue = !prev;
+      localStorage.setItem('rightPanelCollapsed', String(newValue));
+      return newValue;
+    });
+  };
   
+  const hasTimeline = tree && tree.timeline_events && tree.timeline_events.length > 0;
+
   return (
     <div className="h-screen w-screen flex bg-stone-950 overflow-hidden">
-      {/* Sidebar - only show when tree exists */}
+      {/* Left Sidebar - only show when tree exists */}
       {tree && (
-        <Sidebar
-          tree={tree}
-          selectedPerson={selectedPerson}
-          onSelectPerson={handleSelectPerson}
-        />
+        <div 
+          className="relative transition-all duration-300 ease-in-out"
+          style={{ width: leftPanelCollapsed ? '40px' : '360px' }}
+        >
+          {!leftPanelCollapsed && (
+            <div className="h-full w-[360px]">
+              <Sidebar
+                tree={tree}
+                selectedPerson={selectedPerson}
+                onSelectPerson={handleSelectPerson}
+              />
+            </div>
+          )}
+          
+          {/* Collapse/Expand Button */}
+          <button
+            onClick={toggleLeftPanel}
+            className="absolute top-1/2 -translate-y-1/2 right-0 w-10 h-20 bg-amber-800/50 hover:bg-amber-700/70 backdrop-blur-sm border border-amber-600/30 flex items-center justify-center transition-colors z-20"
+            style={{ borderTopRightRadius: '8px', borderBottomRightRadius: '8px' }}
+          >
+            {leftPanelCollapsed ? (
+              <ChevronRight className="w-5 h-5 text-amber-200" />
+            ) : (
+              <ChevronLeft className="w-5 h-5 text-amber-200" />
+            )}
+          </button>
+        </div>
       )}
 
       {/* Main Canvas Area */}
@@ -138,13 +191,35 @@ export default function Home() {
         )}
       </div>
 
-      {/* Timeline - only show when tree exists */}
-      {tree && tree.timeline_events && tree.timeline_events.length > 0 && (
-        <Timeline 
-          events={tree.timeline_events}
-          onEventHover={setHoveredEventParticipants}
-          onEventClick={setSelectedEvent}
-        />
+      {/* Right Timeline - only show when tree exists */}
+      {hasTimeline && (
+        <div 
+          className="relative transition-all duration-300 ease-in-out"
+          style={{ width: rightPanelCollapsed ? '40px' : '340px' }}
+        >
+          {/* Collapse/Expand Button */}
+          <button
+            onClick={toggleRightPanel}
+            className="absolute top-1/2 -translate-y-1/2 left-0 w-10 h-20 bg-amber-800/50 hover:bg-amber-700/70 backdrop-blur-sm border border-amber-600/30 flex items-center justify-center transition-colors z-20"
+            style={{ borderTopLeftRadius: '8px', borderBottomLeftRadius: '8px' }}
+          >
+            {rightPanelCollapsed ? (
+              <ChevronLeft className="w-5 h-5 text-amber-200" />
+            ) : (
+              <ChevronRight className="w-5 h-5 text-amber-200" />
+            )}
+          </button>
+
+          {!rightPanelCollapsed && (
+            <div className="h-full w-[340px]">
+              <Timeline 
+                events={tree.timeline_events}
+                onEventHover={setHoveredEventParticipants}
+                onEventClick={setSelectedEvent}
+              />
+            </div>
+          )}
+        </div>
       )}
 
       {/* Event Details Modal */}
