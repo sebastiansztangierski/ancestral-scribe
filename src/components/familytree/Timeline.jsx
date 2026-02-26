@@ -30,7 +30,7 @@ export default function Timeline({ events, onEventHover, onEventClick, mode = 'e
   const isCompact = mode === 'compact';
 
   return (
-    <div className="w-full h-full bg-stone-900 border-l border-amber-800/50 flex flex-col overflow-hidden">
+    <div className="w-full h-full min-h-0 flex flex-col overflow-hidden bg-stone-900 border-l border-amber-800/50">
       {/* Header */}
       <div className={`flex-none bg-gradient-to-b from-stone-800 to-stone-900 border-b border-amber-800/30 ${isCompact ? 'p-4 flex justify-center' : 'p-6'}`}>
         {isCompact ? (
