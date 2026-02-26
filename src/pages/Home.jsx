@@ -5,12 +5,7 @@ import TreeToolbar from '@/components/familytree/TreeToolbar';
 import GeneratorDialog from '@/components/familytree/GeneratorDialog';
 import Timeline from '@/components/familytree/Timeline';
 import EventDetailsModal from '@/components/familytree/EventDetailsModal';
-import PanelHandle from '@/components/familytree/PanelHandle';
 import { generateFamilyTree } from '@/components/familytree/treeGenerator';
-
-const LEFT_WIDTH = 360;
-const RIGHT_WIDTH = 340;
-const TAB_WIDTH = 44;
 
 export default function Home() {
   const [tree, setTree] = useState(null);
@@ -21,16 +16,6 @@ export default function Home() {
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [jumpToPersonId, setJumpToPersonId] = useState(null);
   const [hasInitialized, setHasInitialized] = useState(false);
-  
-  // Panel collapse state
-  const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(() => {
-    const saved = localStorage.getItem('leftPanelCollapsed');
-    return saved === 'true';
-  });
-  const [rightPanelCollapsed, setRightPanelCollapsed] = useState(() => {
-    const saved = localStorage.getItem('rightPanelCollapsed');
-    return saved === 'true';
-  });
 
   // Check for shared tree in URL on mount
   useEffect(() => {
