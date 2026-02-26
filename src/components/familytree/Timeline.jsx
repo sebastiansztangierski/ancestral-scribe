@@ -31,9 +31,9 @@ export default function Timeline({ events, onEventHover, onEventClick, mode = 'e
   const isCompact = mode === 'compact';
 
   return (
-    <div className="w-full h-full bg-stone-900 border-l border-amber-800/50 flex flex-col">
+    <div className="w-full h-full bg-stone-900 border-l border-amber-800/50 flex flex-col overflow-hidden">
       {/* Header */}
-      <div className={`bg-gradient-to-b from-stone-800 to-stone-900 border-b border-amber-800/30 ${isCompact ? 'p-4 flex justify-center' : 'p-6'}`}>
+      <div className={`flex-none bg-gradient-to-b from-stone-800 to-stone-900 border-b border-amber-800/30 ${isCompact ? 'p-4 flex justify-center' : 'p-6'}`}>
         {isCompact ? (
           <div className="text-amber-500">
             <Scroll className="w-6 h-6" />
@@ -49,8 +49,8 @@ export default function Timeline({ events, onEventHover, onEventClick, mode = 'e
         )}
       </div>
 
-      <ScrollArea className="flex-1">
-        <div className={`relative ${isCompact ? 'p-4' : 'p-6'}`}>
+      <ScrollArea className="flex-1 min-h-0">
+        <div className={`relative ${isCompact ? 'p-4 pb-12' : 'p-6 pb-12'}`} style={{ scrollPaddingBottom: '24px' }}>
           {/* Vertical timeline track */}
           <div className={`absolute ${isCompact ? 'left-1/2 -translate-x-1/2' : 'left-12'} top-0 bottom-0 w-1 bg-gradient-to-b from-amber-700 via-amber-800 to-amber-900`} />
           
@@ -92,7 +92,7 @@ export default function Timeline({ events, onEventHover, onEventClick, mode = 'e
 
       {/* Footer stats - only in expanded mode */}
       {!isCompact && (
-        <div className="p-3 bg-stone-800/50 border-t border-amber-800/30 text-xs text-stone-500">
+        <div className="flex-none p-3 bg-stone-800/50 border-t border-amber-800/30 text-xs text-stone-500">
           <span>{events.length} recorded events</span>
         </div>
       )}
