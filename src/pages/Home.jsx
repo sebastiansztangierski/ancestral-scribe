@@ -158,53 +158,15 @@ export default function Home() {
         />
 
         {tree ? (
-          <>
-            <TreeCanvas
-              tree={tree}
-              selectedPerson={selectedPerson}
-              onSelectPerson={handleSelectPerson}
-              hoveredEventParticipants={hoveredEventParticipants}
-              jumpToPersonId={jumpToPersonId}
-              hasInitialized={hasInitialized}
-              setHasInitialized={setHasInitialized}
-            />
-            
-            {/* Left collapse handle - overlaid on canvas */}
-            <button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                toggleLeftPanel();
-              }}
-              className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-11 h-20 bg-amber-800/70 hover:bg-amber-700/90 backdrop-blur-sm border border-amber-600/50 flex items-center justify-center transition-all rounded-xl shadow-lg z-40"
-              style={{ left: 0 }}
-            >
-              {leftCollapsed ? (
-                <ChevronRight className="w-5 h-5 text-amber-100" />
-              ) : (
-                <ChevronLeft className="w-5 h-5 text-amber-100" />
-              )}
-            </button>
-            
-            {/* Right collapse handle - overlaid on canvas */}
-            {hasTimeline && (
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  toggleRightPanel();
-                }}
-                className="absolute top-1/2 -translate-y-1/2 translate-x-1/2 w-11 h-20 bg-amber-800/70 hover:bg-amber-700/90 backdrop-blur-sm border border-amber-600/50 flex items-center justify-center transition-all rounded-xl shadow-lg z-40"
-                style={{ right: 0 }}
-              >
-                {rightCollapsed ? (
-                  <ChevronLeft className="w-5 h-5 text-amber-100" />
-                ) : (
-                  <ChevronRight className="w-5 h-5 text-amber-100" />
-                )}
-              </button>
-            )}
-          </>
+          <TreeCanvas
+            tree={tree}
+            selectedPerson={selectedPerson}
+            onSelectPerson={handleSelectPerson}
+            hoveredEventParticipants={hoveredEventParticipants}
+            jumpToPersonId={jumpToPersonId}
+            hasInitialized={hasInitialized}
+            setHasInitialized={setHasInitialized}
+          />
         ) : (
           <div className="h-full flex flex-col items-center justify-center text-center px-4 pb-20">
             <div className="text-6xl mb-6">🏰</div>
@@ -257,6 +219,64 @@ export default function Home() {
         onOpenChange={setGeneratorOpen}
         onGenerate={handleGenerate}
       />
+
+      {/* Fixed overlay for collapse handles */}
+      {tree && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            pointerEvents: 'none',
+            zIndex: 80
+          }}
+        >
+          {/* Left panel collapse handle */}
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              toggleLeftPanel();
+            }}
+            className="absolute w-10 h-16 bg-stone-800/90 hover:bg-stone-700 border border-amber-600/40 hover:border-amber-500/60 flex items-center justify-center transition-all rounded-lg"
+            style={{
+              left: `${leftColWidth}px`,
+              top: '50vh',
+              transform: 'translate(-50%, -50%)',
+              pointerEvents: 'auto'
+            }}
+          >
+            {leftCollapsed ? (
+              <ChevronRight className="w-4 h-4 text-amber-200" />
+            ) : (
+              <ChevronLeft className="w-4 h-4 text-amber-200" />
+            )}
+          </button>
+
+          {/* Right panel collapse handle */}
+          {hasTimeline && (
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                toggleRightPanel();
+              }}
+              className="absolute w-10 h-16 bg-stone-800/90 hover:bg-stone-700 border border-amber-600/40 hover:border-amber-500/60 flex items-center justify-center transition-all rounded-lg"
+              style={{
+                right: `${rightColWidth}px`,
+                top: '50vh',
+                transform: 'translate(50%, -50%)',
+                pointerEvents: 'auto'
+              }}
+            >
+              {rightCollapsed ? (
+                <ChevronLeft className="w-4 h-4 text-amber-200" />
+              ) : (
+                <ChevronRight className="w-4 h-4 text-amber-200" />
+              )}
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
