@@ -57,7 +57,7 @@ export default function Timeline({ events, onEventHover, onEventClick, mode = 'e
         <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-10 z-10 bg-gradient-to-t from-stone-950 to-transparent" />
 
         <div
-          className="timeline-scroll h-full overflow-y-auto overscroll-contain"
+          className="timelineScroll h-full overflow-y-auto overscroll-contain"
           data-scroll-panel="timeline"
           onWheel={(e) => e.stopPropagation()}
         >
